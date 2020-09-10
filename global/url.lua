@@ -2,7 +2,7 @@
 
 COMMON_URL_VER = 15
 
-JSON = require ('common.json')
+JSON = require ('drivers-common-public.module.json')
 
 require ('drivers-common-public.global.lib')
 
