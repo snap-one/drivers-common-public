@@ -1,8 +1,10 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 18
+COMMON_LIB_VER = 19
 
 JSON = require ('drivers-common-public.module.json')
+
+pcall (require, 'drivers-common-internal.global.production')
 
 do	-- set AES and SHA defaults
 	AES_DEC_DEFAULTS = {
