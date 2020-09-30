@@ -125,7 +125,7 @@ function OnDriverLateInit ()
 	end
 
 	KillAllTimers ()
-	if (C4.AllowExecute) then C4:AllowExecute (not (PRODUCTION_LUA_VER)) end
+	if (C4.AllowExecute) then C4:AllowExecute (not (IN_PRODUCTION)) end
 
 	C4:urlSetTimeout (10)
 
@@ -218,7 +218,7 @@ end
 
 function OPC.Driver_Version (value)
 	local version = C4:GetDriverConfigInfo ('version')
-	if (not (PRODUCTION_LUA_VER)) then
+	if (not (IN_PRODUCTION)) then
 		version = version .. ' DEV VERSION DO NOT SHIP'
 	end
 	C4:UpdateProperty ('Driver Version', version)
