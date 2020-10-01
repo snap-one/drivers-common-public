@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_MSP_VER = 85
+COMMON_MSP_VER = 86
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -716,66 +716,75 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 	local qId = GetQueueIDByRoomID (roomId)
 	local thisQ = SongQs [qId] or SongQs [roomId]
 
-	if (flags) then
-		if (type (flags) == 'table') then
-			local f = {}
-			for k, v in pairs (flags) do
-				local thisFlag = tostring (k) .. '=' .. tostring (v)
-				table.insert (f, thisFlag)
+	if (not url or url == '') then
+		return
+	end
+
+	if (thisQ) then
+		thisQ.trackStartEvented = false
+		thisQ.trackStopEvented = false
+		thisQ.trackStarted = os.time ()
+		thisQ.nextUrlSent = (not (nextURL == nil or nextURL == ''))
+		thisQ.nextUrlRequested = false
+		thisQ.nextProgrammedTrackRequested = false
+		thisQ.CurrentTrackElapsed = (position and math.floor (position / ONE_SECOND)) or 0
+		thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
+
+		for i, track in ipairs (thisQ.Q) do
+			if (idInQ == track.idInQ) then
+				thisQ.CurrentTrack = i
 			end
-			flags = table.concat (f, ',')
 		end
 	end
 
-	if (url) then
-		if (thisQ) then
-			thisQ.trackStartEvented = false
-			thisQ.trackStopEvented = false
-			thisQ.trackStarted = os.time ()
-			thisQ.nextUrlSent = (not (nextURL == nil or nextURL == ''))
-			thisQ.nextUrlRequested = false
-			thisQ.nextProgrammedTrackRequested = false
-			thisQ.CurrentTrackElapsed = (position and math.floor (position / ONE_SECOND)) or 0
-			thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
-
-			for i, track in ipairs (thisQ.Q) do
-				if (idInQ == track.idInQ) then
-					thisQ.CurrentTrack = i
-				end
-			end
-		end
-
-		local params = {
-			REPORT_ERRORS = true,
-			ROOM_ID = roomId,
-			STATION_URL = url,
-			QUEUE_INFO = idInQ,
-			FLAGS = flags,
-			NEXT_URL = nextURL,
-			POSITION = position,
-		}
-		C4:SendToProxy (MSP_PROXY, 'SELECT_INTERNET_RADIO', params, 'COMMAND')
+	if (type (flags) ~= 'table') then
+		flags = {}
 	end
+	flags.driver = C4:GetDriverConfigInfo ('model')
+
+	local f = {}
+	for k, v in pairs (flags) do
+		local thisFlag = tostring (k) .. '=' .. tostring (v)
+		table.insert (f, thisFlag)
+	end
+	flags = table.concat (f, ',')
+
+	local params = {
+		REPORT_ERRORS = true,
+		ROOM_ID = roomId,
+		STATION_URL = url,
+		QUEUE_INFO = idInQ,
+		FLAGS = flags,
+		NEXT_URL = nextURL,
+		POSITION = position,
+	}
+	C4:SendToProxy (MSP_PROXY, 'SELECT_INTERNET_RADIO', params, 'COMMAND')
 end
 
 function SetNextTrackURL (nextURL, roomId, idInQ, flags)
 	local qId = GetQueueIDByRoomID (roomId)
 	local thisQ = SongQs [qId]
+
+	if (not nextURL or nextURL == '') then
+		return
+	end
+
 	if (thisQ) then
 		thisQ.nextUrlSent = (not (nextURL == nil or nextURL == ''))
 		thisQ.nextUrlRequested = false
 	end
 
-	if (flags) then
-		if (type (flags) == 'table') then
-			local f = {}
-			for k, v in pairs (flags) do
-				local thisFlag = tostring (k) .. '=' .. tostring (v)
-				table.insert (f, thisFlag)
-			end
-			flags = table.concat (f, ',')
-		end
+	if (type (flags) ~= 'table') then
+		flags = {}
 	end
+	flags.driver = C4:GetDriverConfigInfo ('model')
+
+	local f = {}
+	for k, v in pairs (flags) do
+		local thisFlag = tostring (k) .. '=' .. tostring (v)
+		table.insert (f, thisFlag)
+	end
+	flags = table.concat (f, ',')
 
 	local params = {
 		REPORT_ERRORS = true,
