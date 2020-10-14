@@ -73,7 +73,7 @@
 
 ]]
 
-AUTH_CODE_GRANT_VER = 9
+AUTH_CODE_GRANT_VER = 10
 
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
@@ -131,7 +131,13 @@ function oauth:MakeState (contextInfo, extras, uriToCompletePage)
 		redirectURI = uriToCompletePage,
 	}
 
-	self:urlPost (url, data, headers, 'MakeStateResponse', {contextInfo = contextInfo, state = state, extras = extras})
+	local context = {
+		contextInfo = contextInfo,
+		state = state,
+		extras = extras
+	}
+
+	self:urlPost (url, data, headers, 'MakeStateResponse', context)
 end
 
 function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, context, url)
@@ -148,7 +154,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 		local extras = context.extras
 
 		local nonce = data.nonce
-		local expiresAt = data.expiresAt
+		local expiresAt = data.expiresAt or (os.time () + self.REDIRECT_DURATION)
 
 		local timeRemaining = expiresAt - os.time ()
 
