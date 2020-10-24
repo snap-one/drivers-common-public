@@ -202,7 +202,7 @@ local function unicode_codepoint_as_utf8(codepoint)
 			(highpart == 0xE0 and midpart < 0xA0) or (highpart == 0xED and midpart > 0x9F) or
 				(highpart == 0xF0 and midpart < 0x90) or
 				(highpart == 0xF4 and midpart > 0x8F)
-		 then
+		then
 			return '?'
 		else
 			return string.char(highpart, midpart, lowpart)
@@ -234,11 +234,7 @@ function OBJDEF:onDecodeError(message, text, location, etc)
 		message = message .. ' (' .. OBJDEF:encode(etc) .. ')'
 	end
 
-	if self.assert then
-		self.assert(false, message)
-	else
-		assert(false, message)
-	end
+	print ('JSON decode error:' .. message)
 end
 
 OBJDEF.onDecodeOfNilError = OBJDEF.onDecodeError
@@ -249,11 +245,7 @@ function OBJDEF:onEncodeError(message, etc)
 		message = message .. ' (' .. OBJDEF:encode(etc) .. ')'
 	end
 
-	if self.assert then
-		self.assert(false, message)
-	else
-		assert(false, message)
-	end
+	print ('JSON encode error:' .. message)
 end
 
 local function grok_number(self, text, start, etc)
@@ -525,7 +517,7 @@ function OBJDEF:decode(text, etc)
 		return value
 	else
 		-- should never get here... JSON parse errors should have been caught earlier
-		assert(false, value)
+		print ('JSON decode panic:', value)
 		return nil
 	end
 end
