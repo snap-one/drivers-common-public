@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_URL_VER = 15
+COMMON_URL_VER = 16
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -239,29 +239,6 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		end
 	end
 
-	local data, js, len
-
-	for k, v in pairs (tHeaders) do
-		if (string.upper (k) == 'CONTENT-TYPE') then
-			if (string.find (v, 'application/json')) then
-				js = true
-			end
-		end
-		if (string.upper (k) == 'CONTENT-LENGTH') then
-			len = tonumber (v) or 0
-		end
-	end
-
-	if (js and strError == nil) then
-		data = JSON:decode (strData)
-		if (data == nil and len ~= 0) then
-			dbg ('ERROR parsing json data: ')
-			strError = 'Error parsing response'
-		end
-	else
-		data = strData
-	end
-
 	if (DEBUG_URL) then
 		local d = {
 			' ',
@@ -292,7 +269,32 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		print (d)
 
 		C4:DebugLog (d)
+	end
 
+	local data, isJSON, len
+
+	for k, v in pairs (tHeaders) do
+		if (string.upper (k) == 'CONTENT-TYPE') then
+			if (string.find (v, 'application/json')) then
+				isJSON = true
+			end
+		end
+		if (string.upper (k) == 'CONTENT-LENGTH') then
+			len = tonumber (v) or 0
+		end
+	end
+
+	if (isJSON and strError == nil) then
+		data = JSON:decode (strData)
+		if (data == nil and len ~= 0) then
+			print ('Content-Type indicated JSON but content is not valid JSON')
+			data = {strData}
+		end
+	else
+		data = strData
+	end
+
+	if (DEBUG_URL) then
 		DATA = data
 		CONTEXT = info.CONTEXT
 	end
