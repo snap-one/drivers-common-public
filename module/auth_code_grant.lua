@@ -73,7 +73,7 @@
 
 ]]
 
-AUTH_CODE_GRANT_VER = 10
+AUTH_CODE_GRANT_VER = 11
 
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
@@ -94,6 +94,8 @@ function oauth:new (tParams)
 		API_SECRET = tParams.API_SECRET,
 
 		SCOPES = tParams.SCOPES,
+
+		TOKEN_HEADERS = tParams.TOKEN_HEADERS,
 
 		notifyHandler = {},
 		Timer = {},
@@ -303,6 +305,14 @@ function oauth:GetUserToken (code, contextInfo)
 			['Authorization'] = self.BasicAuthHeader,
 		}
 
+		if (self.TOKEN_HEADERS and type (self.TOKEN_HEADERS == 'table')) then
+			for k, v in pairs (self.TOKEN_HEADERS) do
+				if (not (headers [k])) then
+					headers [k] = v
+				end
+			end
+		end
+
 		self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
 	end
 end
@@ -338,7 +348,15 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 		['Authorization'] = self.BasicAuthHeader,
 	}
 
-	self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
+	if (self.TOKEN_HEADERS and type (self.TOKEN_HEADERS == 'table')) then
+		for k, v in pairs (self.TOKEN_HEADERS) do
+			if (not (headers [k])) then
+				headers [k] = v
+			end
+		end
+	end
+
+self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
 end
 
 function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
