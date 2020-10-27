@@ -1,89 +1,22 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
---[[
-
-	PLEASE ENSURE THAT YOU SQUISH AND ENCRYPT THIS WITH YOUR DRIVER
-
-	Call with:
-
-	--------------
-
-	oauth_auth_code_grant = require ('oauth.auth_code_grant')
-
-	SCOPES = {
-		--insert required scopes here, or leave as nil if not needed
-	}
-
-	local tParams ={
-		AUTHORIZATION = 'C4 API Key for OAuth ', -- provided by C4 on per-application basis
-
-		REDIRECT_URI = 'aaa',		-- URL of the root of the redirect server implementing the OAuth-Node package from C4
-
-		AUTH_ENDPOINT_URI = 'bbb',		-- URL of the API provided server that will return the authorization grant code token
-		TOKEN_ENDPOINT_URI = 'ccc',		-- URL of the API provided server that will exchange a code token or refresh token for a new access token and refresh token
-
-		REDIRECT_DURATION = 5 * ONE_MINUTE,	-- sets the time in seconds that the redirect server will be polled
-
-		API_CLIENT_ID = 'ddd',
-		API_SECRET = 'eee',
-
-		SCOPES = SCOPES,
-
-		USE_BASIC_AUTH_HEADER = nil,	--set to true if the OAuth API needs the Basic OAuth header set
-	}
-
-	auth = oauth_auth_code_grant:new (tParams)
-
-	-----------------
-
-	Then create handlers as needed for success/failure modes
-
-
-	-----------------
-
-
-	auth.notifyHandler.ActivationTimeOut = function (contextInfo) end
-	auth.notifyHandler.LinkCodeReceived = function (contextInfo) end
-	auth.notifyHandler.LinkCodeConfirmed = function (contextInfo, link) end
-	auth.notifyHandler.LinkCodeWaiting = function (contextInfo) end
-	auth.notifyHandler.LinkCodeError = function (contextInfo) end
-	auth.notifyHandler.LinkCodeDenied = function (contextInfo, err, err_description, err_uri) end
-	auth.notifyHandler.LinkCodeExpired = function (contextInfo) end
-	auth.notifyHandler.AccessTokenGranted = function (contextInfo, accessToken, refreshToken) end
-	auth.notifyHandler.AccessTokenDenied = function (contextInfo, err, err_description, err_uri) end
-
-	-----------------
-
-	Then start the auth process going with
-
-	-----------------
-
-		local contextInfo = {
-			-- example values; these will be maintained and passed back to the handler functions
-			value = math.random (1,100),
-			time = os.time (),
-		}
-
-		-- any extra values to pass to the AUTH_ENDPOINT_URI during the request
-		local extras = {
-			show_dialog = 'true',
-		}
-
-		auth:MakeState (contextInfo, extras, uriToCompletePage)
-
-]]
-
-AUTH_CODE_GRANT_VER = 12
+AUTH_CODE_GRANT_VER = 13
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
 
+pcall (require, 'drivers-common-public.global.make_short_link')
+
 local oauth = {}
 
 function oauth:new (tParams, initialRefreshToken)
 	local o = {
+		NAME = tParams.NAME,
 		AUTHORIZATION = tParams.AUTHORIZATION,
+
+		SHORT_LINK_AUTHORIZATION = tParams.SHORT_LINK_AUTHORIZATION,
+		LINK_CHANGE_CALLBACK = tParams.LINK_CHANGE_CALLBACK,
 
 		REDIRECT_URI = tParams.REDIRECT_URI,
 		AUTH_ENDPOINT_URI = tParams.AUTH_ENDPOINT_URI,
@@ -109,12 +42,23 @@ function oauth:new (tParams, initialRefreshToken)
 	setmetatable (o, self)
 	self.__index = self
 
-
 	local _timer = function (timer)
+		if (initialRefreshToken == nil) then
+			local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. o.API_CLIENT_ID, SHA_ENC_DEFAULTS)
+			local encryptedToken = C4:PersistGetValue (persistStoreKey)
+			if (encryptedToken) then
+				local encryptionKey = C4:GetDeviceID () .. o.API_SECRET .. o.API_CLIENT_ID
+				local refreshToken, error = SaltedDecrypt (encryptionKey, encryptedToken)
+				if (refreshToken) then
+					initialRefreshToken = refreshToken
+				end
+			end
+		end
+
 		o:RefreshToken (nil, initialRefreshToken)
 	end
 
-	SetTimer (nil, 250, _timer)
+	SetTimer (nil, ONE_SECOND, _timer)
 
 	return o
 end
@@ -171,9 +115,9 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 		local _timedOut = function (timer)
 			CancelTimer (self.Timer.CheckState)
 
-			if (self.notifyHandler.ActivationTimeOut) then
-				self.notifyHandler.ActivationTimeOut (contextInfo)
-			end
+			self:setLink ('')
+
+			self:notify ('ActivationTimeOut', contextInfo)
 		end
 
 		self.Timer.GetCodeStatusExpired = SetTimer (self.Timer.GetCodeStatusExpired, timeRemaining * ONE_SECOND, _timedOut)
@@ -218,7 +162,16 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 
 	local link = MakeURL (self.AUTH_ENDPOINT_URI, args)
 
-	self.notifyHandler.LinkCodeReceived (contextInfo, link)
+	if (self.SHORT_LINK_AUTHORIZATION and MakeShortLink) then
+		local _linkCallback = function (shortLink)
+			self:setLink (shortLink)
+		end
+		MakeShortLink (link, _linkCallback, self.SHORT_LINK_AUTHORIZATION)
+	else
+		self:setLink (link)
+	end
+
+	self:notify ('LinkCodeReceived', contextInfo, link)
 end
 
 function oauth:CheckState (state, contextInfo, nonce)
@@ -246,46 +199,42 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
-		if (self.notifyHandler.LinkCodeConfirmed) then
-			self.notifyHandler.LinkCodeConfirmed (contextInfo)
-		end
-
 		self:GetUserToken (data.code, contextInfo)
 
+		self:notify ('LinkCodeConfirmed', contextInfo)
+
 	elseif (responseCode == 204) then
-		if (self.notifyHandler.LinkCodeWaiting) then
-			self.notifyHandler.LinkCodeWaiting (contextInfo)
-		end
+		self:notify ('LinkCodeWaiting', contextInfo)
 
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
-		if (self.notifyHandler.LinkCodeError) then
-			self.notifyHandler.LinkCodeError (contextInfo)
-		end
+		self:setLink ('')
 
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
+
+		self:notify ('LinkCodeError', contextInfo)
 
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
-		if (self.notifyHandler.LinkCodeDenied) then
-			self.notifyHandler.LinkCodeDenied (contextInfo, data.error, data.error_description, data.error_uri)
-		end
+		self:setLink ('')
 
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
+
+		self:notify ('LinkCodeDenied', contextInfo, data.error, data.error_description, data.error_uri)
 
 	elseif (responseCode == 404) then
 		-- state doesn't exist
 
-		if (self.notifyHandler.LinkCodeExpired) then
-			self.notifyHandler.LinkCodeExpired (contextInfo)
-		end
+		self:setLink ('')
 
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
+
+		self:notify ('LinkCodeExpired', contextInfo)
 	end
 end
 
@@ -330,18 +279,6 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 
 	if (newRefreshToken) then
 		self.REFRESH_TOKEN = newRefreshToken
-	end
-
-	if (self.REFRESH_TOKEN == nil) then
-		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
-		local encryptedToken = C4:PersistGetValue (persistStoreKey)
-		if (encryptedToken) then
-			local encryptionKey = C4:GetDeviceID () .. self.API_SECRET .. self.API_CLIENT_ID
-			local refreshToken, error = SaltedDecrypt (encryptionKey, encryptedToken)
-			if (refreshToken) then
-				self.REFRESH_TOKEN = refreshToken
-			end
-		end
 	end
 
 	if (self.REFRESH_TOKEN == nil) then
@@ -415,16 +352,42 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 			self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, self.EXPIRES_IN * 950, _timer)
 		end
 
-		if (self.notifyHandler.AccessTokenGranted) then
-			self.notifyHandler.AccessTokenGranted (contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
-		end
+		print ((self.NAME or 'OAuth') .. ': Access Token received, accessToken:' .. tostring (self.ACCESS_TOKEN ~= nil) .. ', refreshToken:' .. tostring (self.REFRESH_TOKEN ~= nil))
+
+		self:setLink ('')
+
+		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 
 	elseif (responseCode >= 400 and responseCode < 500) then
 		self.ACCESS_TOKEN = nil
 		self.REFRESH_TOKEN = nil
 
-		if (self.notifyHandler.AccessTokenDenied) then
-			self.notifyHandler.AccessTokenDenied (contextInfo, data.error, data.error_description, data.error_uri)
+		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
+
+		C4:PersistDeleteValue (persistStoreKey)
+
+		print ((self.NAME or 'OAuth') .. ': Access Token denied:', data.error, data.error_description, data.error_uri)
+
+		self:setLink ('')
+
+		self:notify ('AccessTokenDenied', contextInfo, data.error, data.error_description, data.error_uri)
+	end
+end
+
+function oauth:setLink (link)
+	if (self.LINK_CHANGE_CALLBACK and type (self.LINK_CHANGE_CALLBACK) == 'function') then
+		local success, ret = pcall (self.LINK_CHANGE_CALLBACK, link)
+		if (success == false) then
+			print ((self.NAME or 'OAuth') .. ':LINK_CHANGE_CALLBACK Lua error: ', link, ret)
+		end
+	end
+end
+
+function oauth:notify (handler, ...)
+	if (self.notifyHandler [handler] and type (self.notifyHandler [handler]) == 'function') then
+		local success, ret = pcall (self.notifyHandler [handler], ...)
+		if (success == false) then
+			print ((self.NAME or 'OAuth') .. ':' .. handler .. ' Lua error: ', ret, ...)
 		end
 	end
 end
