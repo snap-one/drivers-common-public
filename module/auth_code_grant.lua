@@ -73,14 +73,15 @@
 
 ]]
 
-AUTH_CODE_GRANT_VER = 11
+AUTH_CODE_GRANT_VER = 12
 
+require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
 
 local oauth = {}
 
-function oauth:new (tParams)
+function oauth:new (tParams, initialRefreshToken)
 	local o = {
 		AUTHORIZATION = tParams.AUTHORIZATION,
 
@@ -107,6 +108,13 @@ function oauth:new (tParams)
 
 	setmetatable (o, self)
 	self.__index = self
+
+
+	local _timer = function (timer)
+		o:RefreshToken (nil, initialRefreshToken)
+	end
+
+	SetTimer (nil, 250, _timer)
 
 	return o
 end
@@ -325,6 +333,18 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 	end
 
 	if (self.REFRESH_TOKEN == nil) then
+		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
+		local encryptedToken = C4:PersistGetValue (persistStoreKey)
+		if (encryptedToken) then
+			local encryptionKey = C4:GetDeviceID () .. self.API_SECRET .. self.API_CLIENT_ID
+			local refreshToken, error = SaltedDecrypt (encryptionKey, encryptedToken)
+			if (refreshToken) then
+				self.REFRESH_TOKEN = refreshToken
+			end
+		end
+	end
+
+	if (self.REFRESH_TOKEN == nil) then
 		return
 	end
 
@@ -356,7 +376,7 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 		end
 	end
 
-self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
+	self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
 end
 
 function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
@@ -375,6 +395,13 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	if (responseCode == 200) then
 		self.ACCESS_TOKEN = data.access_token
 		self.REFRESH_TOKEN = data.refresh_token or self.REFRESH_TOKEN
+
+		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
+
+		local encryptionKey = C4:GetDeviceID () .. self.API_SECRET .. self.API_CLIENT_ID
+		local encryptedToken = SaltedEncrypt (encryptionKey, self.REFRESH_TOKEN)
+
+		C4:PersistSetValue (persistStoreKey, encryptedToken)
 
 		self.SCOPE = data.scope or self.SCOPE
 
