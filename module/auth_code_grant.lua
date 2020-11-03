@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 13
+AUTH_CODE_GRANT_VER = 14
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -45,7 +45,7 @@ function oauth:new (tParams, initialRefreshToken)
 	local _timer = function (timer)
 		if (initialRefreshToken == nil) then
 			local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. o.API_CLIENT_ID, SHA_ENC_DEFAULTS)
-			local encryptedToken = C4:PersistGetValue (persistStoreKey)
+			local encryptedToken = PersistGetValue (persistStoreKey)
 			if (encryptedToken) then
 				local encryptionKey = C4:GetDeviceID () .. o.API_SECRET .. o.API_CLIENT_ID
 				local refreshToken, error = SaltedDecrypt (encryptionKey, encryptedToken)
@@ -338,7 +338,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		local encryptionKey = C4:GetDeviceID () .. self.API_SECRET .. self.API_CLIENT_ID
 		local encryptedToken = SaltedEncrypt (encryptionKey, self.REFRESH_TOKEN)
 
-		C4:PersistSetValue (persistStoreKey, encryptedToken)
+		PersistSetValue (persistStoreKey, encryptedToken)
 
 		self.SCOPE = data.scope or self.SCOPE
 
@@ -364,7 +364,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
 
-		C4:PersistDeleteValue (persistStoreKey)
+		PersistDeleteValue (persistStoreKey)
 
 		print ((self.NAME or 'OAuth') .. ': Access Token denied:', data.error, data.error_description, data.error_uri)
 
