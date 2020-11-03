@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 19
+COMMON_LIB_VER = 20
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -759,4 +759,62 @@ function FileWrite (filename, content, overwrite)
 	C4:FileSetPos (file, pos)
 	local result = C4:FileWrite (file, content:len (), content)
 	C4:FileClose (file)
+end
+
+function PersistSetValue (key, value, encrypted)
+	if (encrypted == nil) then
+		encrypted = false
+	end
+
+	if (C4.PersistSetValue) then
+		C4:PersistSetValue (key, value, encrypted)
+	else
+		PersistData = PersistData or {}
+		PersistData.LibValueStore = PersistData.LibValueStore or {}
+		PersistData.LibValueStore [key] = value
+	end
+end
+
+function PersistGetValue (key, encrypted)
+	if (encrypted == nil) then
+		encrypted = false
+	end
+
+	local value
+
+	if (C4.PersistGetValue) then
+		value = C4:PersistGetValue (key, encrypted)
+		if (value == nil and encrypted == true) then
+			value = C4:PersistGetValue (key, false)
+			if (value ~= nil) then
+				PersistSetValue (key, value, encrypted)
+			end
+		end
+		if (value == nil) then
+			if (PersistData and PersistData.LibValueStore and PersistData.LibValueStore [key]) then
+				value = PersistData.LibValueStore [key]
+				PersistSetValue (key, value, encrypted)
+				PersistData.LibValueStore [key] = nil
+				if (next (PersistData.LibValueStore) == nil) then
+					PersistData.LibValueStore = nil
+				end
+			end
+		end
+	elseif (PersistData and PersistData.LibValueStore and PersistData.LibValueStore [key]) then
+		value = PersistData.LibValueStore [key]
+	end
+	return value
+end
+
+function PersistDeleteValue (key)
+	if (C4.PersistDeleteValue) then
+		C4:PersistDeleteValue (key)
+	else
+		if (PersistData and PersistData.LibValueStore) then
+			PersistData.LibValueStore [key] = nil
+			if (next (PersistData.LibValueStore) == nil) then
+				PersistData.LibValueStore = nil
+			end
+		end
+	end
 end
