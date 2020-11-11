@@ -1,6 +1,6 @@
 -- Copyright 2020 Control4 Corporation. All rights reserved.
 
-COMMON_SSDP_VER = 4
+COMMON_SSDP_VER = 5
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -91,8 +91,8 @@ function SSDP:StopDiscovery (resetLocations)
 end
 
 function SSDP:SetProcessXMLFunction (f)
-	local _f = function (s, uuid, data)
-		local success, ret = pcall (f, s, uuid, data)
+	local _f = function (s, uuid, data, headers)
+		local success, ret = pcall (f, s, uuid, data, headers)
 	end
 	self.ProcessXML = _f
 
@@ -266,25 +266,29 @@ function SSDP:parseResponse (data)
 			local ip, port = string.match (server, '(.-):(.+)')
 			if (not port) then ip = server port = 80 end
 
-			local uuid = string.match (headers.USN, 'uuid:(.-):')
+			local usnUUID = string.match (headers.USN, 'uuid:(.*)')
 
-			if (uuid and uuid == self.CurrentDeviceUUID) then
+			if (usnUUID and usnUUID == self.CurrentDeviceUUID) then
 				self.rediscoverCurrentDeviceTimer = CancelTimer (self.rediscoverCurrentDeviceTimer)
 			end
 
-			if (uuid) then
-				self.devices [uuid] = self.devices [uuid] or {}
+			if (self.devices [usnUUID] and self.devices [usnUUID].udnUUID == self.CurrentDeviceUUID) then
+				self.rediscoverCurrentDeviceTimer = CancelTimer (self.rediscoverCurrentDeviceTimer)
+			end
+
+			if (usnUUID) then
+				self.devices [usnUUID] = self.devices [usnUUID] or {}
 
 				for k, v in pairs (headers) do
-					self.devices [uuid] [k] = v
+					self.devices [usnUUID] [k] = v
 				end
 
-				self.devices [uuid].IP = ip
-				self.devices [uuid].PORT = port
+				self.devices [usnUUID].IP = ip
+				self.devices [usnUUID].PORT = port
 
 				if (not self.locations [location]) then
 					local contextInfo = {
-						uuid = uuid,
+						usnUUID = usnUUID,
 					}
 					local _callback = function (strError, responseCode, tHeaders, data, context, url)
 						self:parseXML (strError, responseCode, tHeaders, data, context, url)
@@ -308,29 +312,37 @@ function SSDP:parseResponse (data)
 
 	elseif (byebye) then
 		if (headers.USN) then
-			local uuid = string.match (headers.USN, 'uuid:(.+)')
-			self:deviceOffline (uuid)
+			local usnUUID = string.match (headers.USN, 'uuid:(.+)')
+			self:deviceOffline (usnUUID)
 		end
 	end
 end
 
 function SSDP:deviceOffline (uuid)
-	if (self.devices [uuid]) then
-		local location = self.devices [uuid].LOCATION
+
+	local deviceGoOfflineNow = function (device)
+		local location = device.LOCATION
 		self.locations [location] = CancelTimer (self.locations [location])
+
+		self.devices [device.usnUUID] = nil
+		self.devices [device.udnUUID] = nil
+
+		if (self.CurrentDeviceUUID == device.udnUUID or self.CurrentDeviceUUID == device.usnUUID) then
+			local _timer = function (timer)
+				self:connect ()
+			end
+
+			self.rediscoverCurrentDeviceTimer = SetTimer (self.rediscoverCurrentDeviceTimer, 10 * ONE_SECOND, _timer, true)
+		end
 	end
 
-	self.devices [uuid] = nil
+	for _, device in pairs (self.devices or {}) do
+		if (device.usnUUID == uuid or device.udnUUID == uuid) then
+			deviceGoOfflineNow (device)
+		end
+	end
 
 	self:updateDevices ()
-
-	if (uuid and uuid == self.CurrentDeviceUUID) then
-		local _timer = function (timer)
-			self:connect ()
-		end
-
-		self.rediscoverCurrentDeviceTimer = SetTimer (self.rediscoverCurrentDeviceTimer, 10 * ONE_SECOND, _timer, true)
-	end
 end
 
 function SSDP:updateDevices ()
@@ -345,35 +357,43 @@ end
 
 function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
-		print ('Error retrieving device XML: ' .. (context.uuid or 'Unknown UUID') .. ' : url: ' .. url)
+		print ('Error retrieving device XML: ' .. (context.usnUUID or 'Unknown USN UUID') .. ' : url: ' .. url)
 		return
 	end
 
 	if (responseCode == 200) then
-		local uuid = string.match (data, '<UDN>uuid:(.-)</UDN>')
+		local udnUUID = string.match (data, '<UDN>uuid:(.-)</UDN>')
 
-		if (uuid == context.uuid) then
-			local friendlyName = XMLDecode (string.match (data, '<' .. self.friendlyNameTag .. '>(.-)</' .. self.friendlyNameTag .. '>'))
-
-			for k,v in pairs (tHeaders) do
-				if (string.upper (k) == 'APPLICATION-URL') then
-					local dialServer = v
-					if (string.sub (dialServer, -1, -1) ~= '/') then
-						dialServer = dialServer .. '/'
-					end
-					self.devices [uuid].DIALSERVER = dialServer
-				end
-			end
-
-			self.devices [uuid].friendlyName = friendlyName
-
-			self.devices [uuid].deviceXML = data
-
-			if (self.ProcessXML and type (self.ProcessXML == 'function')) then
-				pcall (self.ProcessXML, self, self.devices)
-			end
-			self:updateDevices ()
+		if (udnUUID ~= context.usnUUID) then
+			self.devices [udnUUID] = self.devices [context.usnUUID]
+			self.devices [context.usnUUID] = nil
 		end
+
+		local device = self.devices [udnUUID]
+
+		local friendlyName = XMLDecode (string.match (data, '<' .. self.friendlyNameTag .. '>(.-)</' .. self.friendlyNameTag .. '>'))
+
+		for k,v in pairs (tHeaders) do
+			if (string.upper (k) == 'APPLICATION-URL') then
+				local dialServer = v
+				if (string.sub (dialServer, -1, -1) ~= '/') then
+					dialServer = dialServer .. '/'
+				end
+				device.DIALSERVER = dialServer
+			end
+		end
+
+		device.udnUUID = udnUUID
+		device.usnUUID = context.usnUUID
+
+		device.friendlyName = friendlyName
+		device.deviceXML = data
+
+		if (self.ProcessXML and type (self.ProcessXML == 'function')) then
+			pcall (self.ProcessXML, self, context.usnUUID, data, tHeaders)
+		end
+		self:updateDevices ()
+
 	end
 end
 
