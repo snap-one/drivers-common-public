@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 20
+COMMON_LIB_VER = 21
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -176,13 +176,20 @@ function CopyTable (t, shallowCopy)
 		return
 	end
 
+	local seenTables = {}
+
 	local r = {}
 	for k, v in pairs (t) do
 		if (type (v) == 'number' or type (v) == 'string' or type (v) == 'boolean') then
 			r [k] = v
 		elseif (type (v) == 'table') then
 			if (shallowCopy ~= true) then
-				r [k] = CopyTable (v)
+				if (seenTables [v]) then
+					r [k] = seenTables [v]
+				else
+					r [k] = CopyTable (v)
+					seenTables [v] = r [k]
+				end
 			end
 		end
 	end
