@@ -1,7 +1,8 @@
 -- Copyright 2020 Control4 Corporation. All rights reserved.
 
-COMMON_SSDP_VER = 5
+COMMON_SSDP_VER = 6
 
+require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
 require ('drivers-common-public.global.url')
@@ -366,7 +367,9 @@ function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
 
 		if (udnUUID ~= context.usnUUID) then
 			self.devices [udnUUID] = self.devices [context.usnUUID]
-			self.devices [context.usnUUID] = nil
+			-- If your device does this,
+			-- when parsing the devices presented in updateDevices callback,
+			-- check if the uuid matches the device.udnUUID before processing
 		end
 
 		local device = self.devices [udnUUID]
