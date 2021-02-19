@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 21
+COMMON_LIB_VER = 22
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -158,7 +158,7 @@ function dbgdump (strDebugText, ...)
 end
 
 function getText (text)
-	return (C4:GetText (text))
+	return (text)
 end
 
 function Print (data)
