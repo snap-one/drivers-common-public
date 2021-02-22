@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 22
+COMMON_LIB_VER = 23
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -157,7 +157,7 @@ function dbgdump (strDebugText, ...)
 	if (DEBUGPRINT) then hexdump (strDebugText or '') print (...) end
 end
 
-function getText (text)
+function gettext (text)
 	return (text)
 end
 
