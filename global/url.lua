@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_URL_VER = 16
+COMMON_URL_VER = 17
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -253,6 +253,13 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 
 		table.insert (d, '')
 		table.insert (d, info.METHOD .. ' ' .. info.URL .. ' ' .. responseCode)
+
+		if (strError ~= nil) then
+			table.insert (d, '---- URL ERROR ----')
+			table.insert (d, strError)
+			table.insert (d, '-------------------')
+		end
+
 		for k, v in pairs (tHeaders) do
 			if (k == 'Authorization') then
 				table.insert (d, k .. ' = <hidden in print>')
