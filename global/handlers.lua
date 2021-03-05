@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_HANDLERS = 7
+COMMON_HANDLERS = 8
 
 --[[
 	Inbound Driver Functions:
@@ -263,6 +263,9 @@ end
 function ReceivedFromNetwork (idBinding, nPort, strData)
 	if (DEBUGPRINT) then
 		local output = {'--- ReceivedFromNetwork: ' .. idBinding, nPort, #strData}
+		if (DEBUG_RFN) then
+			table.insert (output, strData)
+		end
 		output = table.concat (output, '\r\n')
 		print (output)
 		C4:DebugLog (output)
