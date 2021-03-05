@@ -1,6 +1,6 @@
 -- Copyright 2020 Control4 Corporation. All rights reserved.
 
-COMMON_SSDP_VER = 6
+COMMON_SSDP_VER = 7
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -263,9 +263,21 @@ function SSDP:parseResponse (data)
 		if (headers.LOCATION and headers.USN) then
 			local location = headers.LOCATION
 
-			local server, path = string.match (location, 'http://(.-)(/.*)')
-			local ip, port = string.match (server, '(.-):(.+)')
-			if (not port) then ip = server port = 80 end
+			local secure, server = string.match (location, 'http(s?)://(.-)/.*')
+
+			if (not secure and server) then
+				return
+			end
+
+			local ip, port
+
+			if (server) then
+				ip, port = string.match (server, '(.-):(.+)')
+			end
+			if (not port) then
+				ip = server
+				port = (secure == '' and 80) or (secure == 's' and 443) or nil
+			end
 
 			local usnUUID = string.match (headers.USN, 'uuid:(.*)')
 
