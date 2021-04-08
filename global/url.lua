@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_URL_VER = 17
+COMMON_URL_VER = 18
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -241,15 +241,13 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 
 	if (DEBUG_URL) then
 		local d = {
-			' ',
+			'---',
 			'RX',
 		}
 
 		if (eTagHit) then
 			table.insert (d, '---- ETAG CACHE HIT ----')
 		end
-
-		table.insert (d, '')
 
 		table.insert (d, '')
 		table.insert (d, info.METHOD .. ' ' .. info.URL .. ' ' .. responseCode)
@@ -267,10 +265,11 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 				table.insert (d, k .. ' = ' .. v)
 			end
 		end
-		table.insert (d, ' ')
+		table.insert (d, '')
+		table.insert (d, '-:PAYLOAD:-')
 		table.insert (d, strData)
-		table.insert (d, ' ')
-		table.insert (d, ' ')
+		table.insert (d, '-:PAYLOAD_ENDS:-')
+		table.insert (d, '---')
 		d = table.concat (d, '\r\n')
 
 		print (d)
@@ -349,7 +348,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 
 	if (DEBUG_URL) then
 		local d = {
-			' ',
+			'---',
 			'TX',
 		}
 
@@ -362,10 +361,11 @@ function urlDo (method, url, data, headers, callback, context, options)
 				table.insert (d, k .. ' = ' .. v)
 			end
 		end
-		table.insert (d, ' ')
+		table.insert (d, '')
+		table.insert (d, '-:PAYLOAD:-')
 		table.insert (d, data)
-		table.insert (d, ' ')
-		table.insert (d, ' ')
+		table.insert (d, '-:PAYLOAD_ENDS:-')
+		table.insert (d, '---')
 
 		d = table.concat (d, '\r\n')
 
