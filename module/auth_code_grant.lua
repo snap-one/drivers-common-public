@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 14
+AUTH_CODE_GRANT_VER = 15
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -164,11 +164,11 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 
 	if (self.SHORT_LINK_AUTHORIZATION and MakeShortLink) then
 		local _linkCallback = function (shortLink)
-			self:setLink (shortLink)
+			self:setLink (shortLink, contextInfo)
 		end
 		MakeShortLink (link, _linkCallback, self.SHORT_LINK_AUTHORIZATION)
 	else
-		self:setLink (link)
+		self:setLink (link, contextInfo)
 	end
 
 	self:notify ('LinkCodeReceived', contextInfo, link)
@@ -374,9 +374,9 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	end
 end
 
-function oauth:setLink (link)
+function oauth:setLink (link, contextInfo)
 	if (self.LINK_CHANGE_CALLBACK and type (self.LINK_CHANGE_CALLBACK) == 'function') then
-		local success, ret = pcall (self.LINK_CHANGE_CALLBACK, link)
+		local success, ret = pcall (self.LINK_CHANGE_CALLBACK, link, contextInfo)
 		if (success == false) then
 			print ((self.NAME or 'OAuth') .. ':LINK_CHANGE_CALLBACK Lua error: ', link, ret)
 		end
