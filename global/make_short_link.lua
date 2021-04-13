@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-MAKE_SHORT_LINK_VER = 7
+MAKE_SHORT_LINK_VER = 8
 
 require ('drivers-common-public.global.url')
 
@@ -9,7 +9,7 @@ function MakeShortLink (link, callback, apiKey)
 	if (IN_PRODUCTION) then
 		url = 'https://link.ctrl4.co/new'
 	else
-		url = 'https://link.control4dev.com/new'
+		url = 'https://link.control4driversdev.com/new'
 	end
 
 	local data = {
