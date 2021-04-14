@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 23
+COMMON_LIB_VER = 24
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -824,4 +824,20 @@ function PersistDeleteValue (key)
 			end
 		end
 	end
+end
+
+function Select (data, ...)
+	if (type (data) ~= 'table') then
+		return nil
+	end
+
+	local ret = data
+	for _, index in ipairs ({...}) do
+		if (ret [index]) then
+			ret = ret [index]
+		else
+			return nil
+		end
+	end
+	return ret
 end
