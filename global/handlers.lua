@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_HANDLERS = 8
+COMMON_HANDLERS = 9
 
 --[[
 	Inbound Driver Functions:
@@ -61,6 +61,7 @@ COMMON_HANDLERS = 8
 
 do	--Globals
 	EC = EC or {}
+	OBC = OBC or {}
 	OCS = OCS or {}
 	OPC = OPC or {}
 	OSE = OSE or {}
@@ -102,6 +103,28 @@ function ExecuteCommand (strCommand, tParams)
 	elseif (success == false) then
 		print ('ExecuteCommand Lua error: ', strCommand, ret)
 	end
+end
+
+function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+	if (DEBUGPRINT) then
+		local output = {'--- OnBindingChanged: ' .. idBinding, strClass, tostring (bIsBound), otherDeviceId, otherBindingId}
+		output = table.concat (output, '\r\n')
+		print (output)
+		C4:DebugLog (output)
+	end
+
+	local success, ret
+
+	if (OBC and OBC [idBinding] and type (OBC [idBinding]) == 'function') then
+		success, ret = pcall (OBC [idBinding], idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+	end
+
+	if (success == true) then
+		return (ret)
+	elseif (success == false) then
+		print ('OnBindingChanged Lua error: ', idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+	end
+
 end
 
 function OnConnectionStatusChanged (idBinding, nPort, strStatus)
