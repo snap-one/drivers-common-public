@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 24
+COMMON_LIB_VER = 25
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -404,6 +404,44 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs)
 	addTag (strName,true)
 
 	return (table.concat (retXML))
+end
+
+--[[
+	-- tests on tag = tag
+	local t1 = '<a>b</a><tag>test string</tag><a>b</a>' -- 'test string', nil
+	local t2 = '<a>b</a><tag testattrib="testval" testattrib2="test val">test</tag><a>b</a>' -- test, {testattrib = 'testval', testattrib2 = 'test val'}
+	local t3 = '<a>b</a><ta g>test string</tag><a>b</a>' -- nil, nil
+	local t4 = '<a>b</a><tagattrib>asdf</tagattrib>' -- nil, nil
+	local t5 = '<a>b</a><tag/><a>b</a>' -- '', nil
+	local t6 = '<a>b</a><tag /><a>b</a>' -- '', nil
+	local t7 = '<a>b</a><tag testattrib="testval" testattrib2="test val"/><a>b</a>' -- '', , {testattrib = 'testval', testattrib2 = 'test val'}
+	local t8 = '<a>b</a><tag testattrib="testval" testattrib2="test val" /><a>b</a>' -- '', , {testattrib = 'testval', testattrib2 = 'test val'}
+--]]
+
+function XMLCapture (xmlString, tag)
+	-- plain tag
+	local tagContents = string.match (xmlString, '<' .. tag .. '>(.-)</' .. tag .. '>')
+	if (tagContents) then
+		return tagContents, nil
+	end
+
+	-- tag with attributes
+	local attributes, tagContents = string.match (xmlString, '<' .. tag .. '%s+(%S.-)>(.-)</' .. tag .. '>')
+	if (attributes and tagContents) then
+		return tagContents, attributes
+	end
+
+	-- self closing tag
+	local selfClosed = string.match (xmlString, '<' .. tag .. '%s-/>')
+	if (selfClosed) then
+		return '', nil
+	end
+
+	-- self closing tag with attributes
+	local attributes = string.match (xmlString, '<' .. tag .. '%s+(%S.-)%s-/>')
+	if (attributes) then
+		return '', attributes
+	end
 end
 
 function RefreshNavs ()
@@ -840,4 +878,36 @@ function Select (data, ...)
 		end
 	end
 	return ret
+end
+
+function GetConnections ()
+	local connectionsXML = C4:GetDriverConfigInfo ('connections')
+
+	local connections = {}
+	for connection in string.gmatch (connectionsXML, '<connection>(.-)</connection>') do
+		local id = tonumber (XMLCapture (connection, 'id'))
+		if (id) then
+			local classesXML = XMLCapture (connection, 'classes') or ''
+
+			local classes = {}
+
+			for class in string.gmatch (classesXML, '<class>(.-)</class>') do
+				table.insert (classes, {
+					classname = XMLCapture (class, 'classname'),
+					autobind = (XMLCapture (class, 'autobind') == 'True'),
+				})
+			end
+
+			connections [id] = {
+				id = id,
+				type = tonumber (XMLCapture (connection, 'type')),
+				connectionname = XMLCapture (connection, 'name'),
+				consumer = (XMLCapture (connection, 'consumer') == 'True'),
+				linelevel = (XMLCapture (connection, 'linelevel') == 'True'),
+				idautobind = XMLCapture (connection, 'idautobind'),
+				classes = classes,
+			}
+		end
+	end
+	return connections
 end
