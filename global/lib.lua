@@ -871,7 +871,7 @@ function Select (data, ...)
 
 	local ret = data
 	for _, index in ipairs ({...}) do
-		if (ret [index]) then
+		if (ret [index] ~= nil) then
 			ret = ret [index]
 		else
 			return nil
