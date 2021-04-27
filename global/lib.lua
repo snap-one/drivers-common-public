@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 25
+COMMON_LIB_VER = 26
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -869,12 +869,23 @@ function Select (data, ...)
 		return nil
 	end
 
+	local tablePack = function (...)
+		return {
+			n = select ('#', ...), ...
+		}
+	end
+
+	local args = tablePack (...)
+
 	local ret = data
-	for _, index in ipairs ({...}) do
+
+	for i = 1, args.n do
+		local index = args [i]
+		if (index == nil or ret [index] == nil) then
+			return nil
+		end
 		if (ret [index] ~= nil) then
 			ret = ret [index]
-		else
-			return nil
 		end
 	end
 	return ret
