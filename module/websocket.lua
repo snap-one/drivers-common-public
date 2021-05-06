@@ -1,12 +1,13 @@
--- Copyright 2020 Control4 Corporation. All rights reserved.
-COMMON_WEBSOCKET_VER = 3
+-- Copyright 2021 Wirepath Home Systems, LLC. All rights reserved.
+
+COMMON_WEBSOCKET_VER = 4
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
 
 local WebSocket = {}
 
-function WebSocket:new (url, additionalHeaders)
+function WebSocket:new (url, additionalHeaders, wssOptions)
 	if (WebSocket.Sockets and WebSocket.Sockets [url]) then
 		local ws = WebSocket.Sockets [url]
 		ws.additionalHeaders = additionalHeaders
@@ -38,6 +39,13 @@ function WebSocket:new (url, additionalHeaders)
 
 	port = tonumber (port)
 
+	if (type (wssOptions) ~= 'table') then
+		wssOptions = {
+			verify_mode = 'peer',
+			verify_method = 'tlsv1',
+		}
+	end
+
 	if (protocol and host and port and resource) then
 		ws = {
 			url = url,
@@ -48,6 +56,7 @@ function WebSocket:new (url, additionalHeaders)
 			buf = '',
 			ping_interval = 30,
 			additionalHeaders = additionalHeaders or {},
+			wssOptions = wssOptions,
 		}
 
 		setmetatable (ws, self)
@@ -218,7 +227,7 @@ function WebSocket:setupC4Connection ()
 
 		if (self.protocol == 'wss') then
 			C4:CreateNetworkConnection (self.netBinding, self.host, 'SSL')
-			C4:NetPortOptions (self.netBinding, self.port, 'SSL', {verify_mode = 'peer', verify_method = 'tlsv1'})
+			C4:NetPortOptions (self.netBinding, self.port, 'SSL', self.wssOptions)
 		else
 			C4:CreateNetworkConnection (self.netBinding, self.host)
 		end
