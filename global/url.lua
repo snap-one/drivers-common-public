@@ -1,10 +1,13 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_URL_VER = 18
+COMMON_URL_VER = 19
 
 JSON = require ('drivers-common-public.module.json')
 
 require ('drivers-common-public.global.lib')
+
+Metrics = require ('drivers-common-public.module.metrics')
+
 
 do	--Globals
 	GlobalTicketHandlers = GlobalTicketHandlers or {}
@@ -13,6 +16,15 @@ do	--Globals
 	MAX_CACHE = 100
 
 	USE_NEW_URL = VersionCheck ('3.0.0')
+end
+
+do	--Setup Metrics
+	local namespace = {
+		'driver.common.url.',
+		C4:GetDriverConfigInfo ('name'),
+	}
+	namespace = table.concat (namespace)
+	MetricsURL = Metrics:new (namespace)
 end
 
 function MakeURL (path, args, suppressDefaultArgs)
@@ -184,6 +196,7 @@ end
 function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 	for k, info in pairs (GlobalTicketHandlers) do
 		if (info.TICKET == ticketId) then
+			MetricsURL:SetCounter ('RX', 1)
 			table.remove (GlobalTicketHandlers, k)
 			ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		end
@@ -294,6 +307,9 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		data = JSON:decode (strData)
 		if (data == nil and len ~= 0) then
 			print ('Content-Type indicated JSON but content is not valid JSON')
+
+			MetricsURL:SetCounter ('Error_RX_JSON', 1)
+
 			data = {strData}
 		end
 	else
@@ -303,6 +319,14 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	if (DEBUG_URL) then
 		DATA = data
 		CONTEXT = info.CONTEXT
+	end
+
+	if (strError) then
+		MetricsURL:SetString ('Error_RX', strError)
+	end
+
+	if (info.METHOD) then
+		MetricsURL:SetCounter ('RX_' .. info.METHOD, 1)
 	end
 
 	if (info.CALLBACK) then
@@ -390,6 +414,8 @@ function urlDo (method, url, data, headers, callback, context, options)
 		t:SetOptions (options)
 
 		local _onDone = function (transfer, responses, errCode, errMsg)
+			MetricsURL:SetCounter ('RX', 1)
+
 			if (errCode == -1 and errMsg == nil) then
 				errMsg = 'Transfer cancelled'
 			end
@@ -408,6 +434,8 @@ function urlDo (method, url, data, headers, callback, context, options)
 		end
 
 		t:OnDone (_onDone)
+
+		MetricsURL:SetCounter ('TX', 1)
 
 		if (method == 'GET') then
 			t:Get (url, headers)
@@ -432,6 +460,8 @@ function urlDo (method, url, data, headers, callback, context, options)
 			}
 		end
 
+		MetricsURL:SetCounter ('TX', 1)
+
 		if (method == 'GET') then
 			info.TICKET = C4:urlGet (url, headers, false, ReceivedAsync, flags)
 		elseif (method == 'POST') then
@@ -448,6 +478,8 @@ function urlDo (method, url, data, headers, callback, context, options)
 			table.insert (GlobalTicketHandlers, info)
 
 		else
+			MetricsURL:SetCounter ('TX_Error', 1)
+
 			dbg ('C4.Curl error: ' .. info.METHOD .. ' ' .. url)
 			if (callback) then
 				pcall (callback, 'No ticket', nil, nil, '', context, url)
@@ -459,21 +491,26 @@ function urlDo (method, url, data, headers, callback, context, options)
 end
 
 function urlGet (url, headers, callback, context, options)
+	MetricsURL:SetCounter ('TX_GET', 1)
 	urlDo ('GET', url, data, headers, callback, context, options)
 end
 
 function urlPost (url, data, headers, callback, context, options)
+	MetricsURL:SetCounter ('TX_POST', 1)
 	urlDo ('POST', url, data, headers, callback, context, options)
 end
 
 function urlPut (url, data, headers, callback, context, options)
+	MetricsURL:SetCounter ('TX_PUT', 1)
 	urlDo ('PUT', url, data, headers, callback, context, options)
 end
 
 function urlDelete (url, headers, callback, context, options)
+	MetricsURL:SetCounter ('TX_DELETE', 1)
 	urlDo ('DELETE', url, data, headers, callback, context, options)
 end
 
 function urlCustom (url, method, data, headers, callback, context, options)
+	MetricsURL:SetCounter ('TX_' .. method, 1)
 	urlDo (method, url, data, headers, callback, context, options)
 end
