@@ -9,6 +9,8 @@ require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
 require ('drivers-common-public.global.url')
 
+Metrics = require ('drivers-common-public.module.metrics')
+
 function JSON:assert()
 	-- We don't want the JSON library to assert but rather return nil in case of parsing errors
 end
@@ -65,6 +67,15 @@ end
 
 do -- define proxy / binding IDs
 	MSP_PROXY = 5001
+end
+
+do	--Setup Metrics
+	local namespace = {
+		'driver.common.msp.',
+		C4:GetDriverConfigInfo ('name'),
+	}
+	namespace = table.concat (namespace)
+	MetricsMSP = Metrics:new (namespace)
 end
 
 function OnDriverDestroyed ()
