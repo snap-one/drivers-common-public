@@ -1,6 +1,6 @@
 -- Copyright 2020 Control4 Corporation. All rights reserved.
 
-COMMON_SSDP_VER = 7
+COMMON_SSDP_VER = 8
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -227,9 +227,6 @@ function SSDP:sendDiscoveryPacket (binding)
 end
 
 function SSDP:parseResponse (data)
-	if (string.find (data, 'M-SEARCH')) then return end
-	if (string.find (data, 'c4:')) then return end
-
 	local headers = {}
 	for line in string.gmatch (data, '(.-)\r\n') do
 		local k, v = string.match (line, '%s*(.-)%s*[:/*]%s*(.+)')
