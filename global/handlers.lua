@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_HANDLERS = 9
+COMMON_HANDLERS = 10
 
 --[[
 	Inbound Driver Functions:
@@ -42,7 +42,7 @@ COMMON_HANDLERS = 9
 		-- ReceivedFromProxy (idBinding, strCommand, tParams)
 		ReceivedFromSerial (idBinding, strData)
 		--TestCondition (strConditionName, tParams)
-		UIRequest (sRequest, tParams)
+		--UIRequest (sRequest, tParams)
 
 
 		DoPersistSave ()
@@ -191,6 +191,7 @@ do	--Globals
 	RFN = RFN or {}
 	RFP = RFP or {}
 	TC = TC or {}
+	UIR = UIR or {}
 end
 
 function ExecuteCommand (strCommand, tParams)
@@ -489,5 +490,34 @@ function TestCondition (strConditionName, tParams)
 		return (ret)
 	elseif (success == false) then
 		print ('TestCondition Lua error: ', idBinding, strCommand, ret)
+	end
+end
+
+function UIRequest (sRequest, tParams)
+	strCommand = strCommand or ''
+	tParams = tParams or {}
+
+	if (DEBUGPRINT) then
+		local output = {'--- UIRequest: ' .. idBinding, strCommand, '----PARAMS----'}
+		for k,v in pairs (tParams) do table.insert (output, tostring (k) .. ' = ' .. tostring (v)) end
+		table.insert (output, '---')
+		output = table.concat (output, '\r\n')
+		print (output)
+		C4:DebugLog (output)
+	end
+
+	local success, ret
+
+	if (UIR and UIR [strCommand] and type (UIR [strCommand]) == 'function') then
+		success, ret = pcall (UIR [strCommand], idBinding, strCommand, tParams, args)
+
+	elseif (UIR and UIR [idBinding] and type (UIR [idBinding]) == 'function') then
+		success, ret = pcall (UIR [idBinding], idBinding, strCommand, tParams, args)
+	end
+
+	if (success == true) then
+		return (ret)
+	elseif (success == false) then
+		print ('UIRequest Lua error: ', idBinding, strCommand, ret)
 	end
 end
