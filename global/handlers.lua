@@ -42,7 +42,7 @@ COMMON_HANDLERS = 10
 		-- ReceivedFromProxy (idBinding, strCommand, tParams)
 		ReceivedFromSerial (idBinding, strData)
 		--TestCondition (strConditionName, tParams)
-		--UIRequest (sRequest, tParams)
+		--UIRequest (strCommand, tParams)
 
 
 		DoPersistSave ()
@@ -493,12 +493,12 @@ function TestCondition (strConditionName, tParams)
 	end
 end
 
-function UIRequest (sRequest, tParams)
+function UIRequest (strCommand, tParams)
 	strCommand = strCommand or ''
 	tParams = tParams or {}
 
 	if (DEBUGPRINT) then
-		local output = {'--- UIRequest: ' .. idBinding, strCommand, '----PARAMS----'}
+		local output = {'--- UIRequest: ' .. strCommand, '----PARAMS----'}
 		for k,v in pairs (tParams) do table.insert (output, tostring (k) .. ' = ' .. tostring (v)) end
 		table.insert (output, '---')
 		output = table.concat (output, '\r\n')
@@ -509,15 +509,12 @@ function UIRequest (sRequest, tParams)
 	local success, ret
 
 	if (UIR and UIR [strCommand] and type (UIR [strCommand]) == 'function') then
-		success, ret = pcall (UIR [strCommand], idBinding, strCommand, tParams, args)
-
-	elseif (UIR and UIR [idBinding] and type (UIR [idBinding]) == 'function') then
-		success, ret = pcall (UIR [idBinding], idBinding, strCommand, tParams, args)
+		success, ret = pcall (UIR [strCommand], strCommand, tParams)
 	end
 
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('UIRequest Lua error: ', idBinding, strCommand, ret)
+		print ('UIRequest Lua error: ', strCommand, ret)
 	end
 end
