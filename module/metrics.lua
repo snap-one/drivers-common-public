@@ -1,6 +1,6 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 1
+COMMON_METRICS_VER = 2
 
 local Metrics = {}
 
@@ -20,9 +20,11 @@ function Metrics:new (namespace, options)
 
 	namespace = string.gsub (namespace, '[%:%|%@% ]+', '_')
 
+	namespace = namespace .. '.' .. tostring (C4:GetDeviceID ())
+
 	if (Metrics.NameSpaces and Metrics.NameSpaces [namespace]) then
 		local metric = Metrics.NameSpaces [namespace]
-		return ssdp
+		return metric
 	end
 
 	options = options or {}
