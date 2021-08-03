@@ -1,6 +1,6 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 19
+COMMON_URL_VER = 20
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -478,7 +478,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 			table.insert (GlobalTicketHandlers, info)
 
 		else
-			MetricsURL:SetCounter ('TX_Error', 1)
+			MetricsURL:SetCounter ('Error_TX', 1)
 
 			dbg ('C4.Curl error: ' .. info.METHOD .. ' ' .. url)
 			if (callback) then
