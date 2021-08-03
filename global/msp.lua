@@ -1,6 +1,6 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 86
+COMMON_MSP_VER = 87
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -760,6 +760,8 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 	end
 	flags = table.concat (f, ',')
 
+	MetricsMSP:SetCounter ('TRACK_PLAY_ATTEMPT', 1)
+
 	local params = {
 		REPORT_ERRORS = true,
 		ROOM_ID = roomId,
@@ -796,6 +798,8 @@ function SetNextTrackURL (nextURL, roomId, idInQ, flags)
 		table.insert (f, thisFlag)
 	end
 	flags = table.concat (f, ',')
+
+	MetricsMSP:SetCounter ('NEXT_TRACK_PLAY_ATTEMPT', 1)
 
 	local params = {
 		REPORT_ERRORS = true,
@@ -1602,7 +1606,8 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
 
-	local status = ParseQueueStreamStatus (tParams.STATUS)
+	local status = ParseQueueStreamStatus (tParams.STATUS) or {}
+	MetricsMSP:SetCounter ('STATUS_' .. (status.status or 'unknown'), 1)
 
 	local thisQ = SongQs [qId]
 end
