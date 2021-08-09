@@ -1,12 +1,14 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 15
+AUTH_CODE_GRANT_VER = 16
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
 
 pcall (require, 'drivers-common-public.global.make_short_link')
+
+Metrics = require ('drivers-common-public.module.metrics')
 
 local oauth = {}
 
@@ -41,6 +43,15 @@ function oauth:new (tParams, initialRefreshToken)
 
 	setmetatable (o, self)
 	self.__index = self
+
+	local namespace = {
+		'driver.common.auth_code',
+		C4:GetDriverConfigInfo ('name'),
+		self.NAME or self.API_CLIENT_ID,
+	}
+
+	namespace = table.concat (namespace, '.')
+	o.metrics = Metrics:new (namespace)
 
 	local _timer = function (timer)
 		if (initialRefreshToken == nil) then
@@ -91,6 +102,7 @@ function oauth:MakeState (contextInfo, extras, uriToCompletePage)
 		extras = extras
 	}
 
+	MetricsURL:SetCounter ('MakeStateAttempt', 1)
 	self:urlPost (url, data, headers, 'MakeStateResponse', context)
 end
 
@@ -104,6 +116,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 	local contextInfo = context.contextInfo
 
 	if (responseCode == 200) then
+		MetricsURL:SetCounter ('MakeStateSuccess', 1)
 		local state = context.state
 		local extras = context.extras
 
@@ -196,6 +209,9 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 
 	if (responseCode == 200 and data.code) then
 		-- state exists and has been authorized
+
+		MetricsURL:SetCounter ('LinkCodeConfirmed', 1)
+
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
@@ -209,6 +225,8 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
+		MetricsURL:SetCounter ('LinkCodeError', 1)
+
 		self:setLink ('')
 
 		CancelTimer (self.Timer.CheckState)
@@ -219,6 +237,8 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
+		MetricsURL:SetCounter ('LinkCodeDenied', 1)
+
 		self:setLink ('')
 
 		CancelTimer (self.Timer.CheckState)
@@ -228,6 +248,8 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 
 	elseif (responseCode == 404) then
 		-- state doesn't exist
+
+		MetricsURL:SetCounter ('LinkCodeExpired', 1)
 
 		self:setLink ('')
 
@@ -330,6 +352,8 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	local contextInfo = context.contextInfo
 
 	if (responseCode == 200) then
+		MetricsURL:SetCounter ('AccessTokenGranted', 1)
+
 		self.ACCESS_TOKEN = data.access_token
 		self.REFRESH_TOKEN = data.refresh_token or self.REFRESH_TOKEN
 
@@ -359,6 +383,8 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 
 	elseif (responseCode >= 400 and responseCode < 500) then
+		MetricsURL:SetCounter ('AccessTokenDenied', 1)
+
 		self.ACCESS_TOKEN = nil
 		self.REFRESH_TOKEN = nil
 
