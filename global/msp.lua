@@ -1607,9 +1607,20 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
 
 	local status = ParseQueueStreamStatus (tParams.STATUS) or {}
-	MetricsMSP:SetCounter ('STATUS_' .. (status.status or 'unknown'), 1)
-
 	local thisQ = SongQs [qId]
+
+	if (thisQ) then
+		if (status.status) then
+			local statusChange
+			if (thisQ.StreamStatus ~= status.status) then
+				thisQ.StreamStatus = status.status
+				statusChange = true
+			end
+			if (statusChange or status.status ~= 'OK_playing') then
+				MetricsMSP:SetCounter ('STATUS_' .. status.status, 1)
+			end
+		end
+	end
 end
 
 function ParseQueueStreamStatus (status)
