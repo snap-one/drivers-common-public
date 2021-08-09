@@ -71,10 +71,10 @@ end
 
 do	--Setup Metrics
 	local namespace = {
-		'driver.common.msp.',
+		'driver.common.msp',
 		C4:GetDriverConfigInfo ('name'),
 	}
-	namespace = table.concat (namespace)
+	namespace = table.concat (namespace, '.')
 	MetricsMSP = Metrics:new (namespace)
 end
 

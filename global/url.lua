@@ -20,10 +20,10 @@ end
 
 do	--Setup Metrics
 	local namespace = {
-		'driver.common.url.',
+		'driver.common.url',
 		C4:GetDriverConfigInfo ('name'),
 	}
-	namespace = table.concat (namespace)
+	namespace = table.concat (namespace, '.')
 	MetricsURL = Metrics:new (namespace)
 end
 
