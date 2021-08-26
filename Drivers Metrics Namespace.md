@@ -16,23 +16,23 @@ The third element will be the version of the previous element:
 - When the metric is specific to a driver, this is the version of the driver running, which can be retrieved with `C4:GetDriverConfigInfo ('version')`
 - When the metric is specific to a library/common code, it should be retrieved from a variable stored in the library that can be updated in one place whenever the code in that library is updated.
 
-The fourth element is an identifier element to allow for differentiating multiple uses of the same common code/library in one driver.  If not required, it should be set to the empty string.
+The fourth element is an identifier element to allow for differentiating multiple uses of the same metric key in one driver (for example, common code/library used multiple ways, or multiple proxies generating the same event).  If not required, it should be set to the empty string.
 
 The fifth element will be the driver name, as defined in the `<name>` element of the `driver.xml` and retrieved dynamically with `C4:GetDriverConfigInfo ('name')`: `Pandora`.
 
 The sixth element will be the ID of the driver in the project, retrieved dynamically with `C4:GetDeviceID ()`.
 
-The only allowable characters in any of the fields, or in the metric key, is the character set `-_[A-Z][a-z][0-9]`.  Any series of characters outside this range should be replaced with a single underscore per contiguous range of those characters.
+The only allowable characters in any of the fields, or in the metric key, is the character set `-_[A-Z][a-z][0-9]`.  Any series of characters outside this range MUST be replaced with a single underscore per contiguous range of those characters.
 
 Any data is allowed in the metric value, but it is suggested to remove any carriage returns or newlines and replace them with a string of four spaces.
 
 It is suggested that the metric key should be in in PascalCase to maintain readability and reduce character counts.  This is not a requirement.
 
-Additionally, drivers under development or metrics being prototyped should be prefixed with `sandbox.` to ensure that the metrics will work correctly and will not interfere with production metrics.
+Additionally, drivers under development or metrics being prototyped should have their namespaces complete as above and then additonally be prefixed with `sandbox.`, to ensure that the metrics will work correctly and will not interfere with production metrics.
 
 ## Implementation
 
-This spec is implemented in the `metrics.lua` module published in the `drivers-common-public` github repository.
+This spec is implemented in the `metrics.lua` module published in the `drivers-common-public` github repository.  In order for this to generate production metrics, the Lua global variable `IN_PRODUCTION` must be set to true.  This is done automatically by including the content of the `drivers-common-internal` repository.
 
 ### Usage
 
