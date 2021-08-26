@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 16
+AUTH_CODE_GRANT_VER = 17
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -44,14 +44,7 @@ function oauth:new (tParams, initialRefreshToken)
 	setmetatable (o, self)
 	self.__index = self
 
-	local namespace = {
-		'driver.common.auth_code',
-		C4:GetDriverConfigInfo ('name'),
-		self.NAME or self.API_CLIENT_ID,
-	}
-
-	namespace = table.concat (namespace, '.')
-	o.metrics = Metrics:new (namespace)
+	o.metrics = Metrics:new ('dcp_auth_code', AUTH_CODE_GRANT_VER, (self.NAME or self.API_CLIENT_ID))
 
 	local _timer = function (timer)
 		if (initialRefreshToken == nil) then
