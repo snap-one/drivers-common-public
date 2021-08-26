@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 87
+COMMON_MSP_VER = 88
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -70,12 +70,7 @@ do -- define proxy / binding IDs
 end
 
 do	--Setup Metrics
-	local namespace = {
-		'driver.common.msp',
-		C4:GetDriverConfigInfo ('name'),
-	}
-	namespace = table.concat (namespace, '.')
-	MetricsMSP = Metrics:new (namespace)
+	MetricsMSP = Metrics:new ('dcp_msp', COMMON_MSP_VER)
 end
 
 function OnDriverDestroyed ()
@@ -760,7 +755,7 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 	end
 	flags = table.concat (f, ',')
 
-	MetricsMSP:SetCounter ('TRACK_PLAY_ATTEMPT', 1)
+	MetricsMSP:SetCounter ('TRACK_PLAY_ATTEMPT')
 
 	local params = {
 		REPORT_ERRORS = true,
@@ -799,7 +794,7 @@ function SetNextTrackURL (nextURL, roomId, idInQ, flags)
 	end
 	flags = table.concat (f, ',')
 
-	MetricsMSP:SetCounter ('NEXT_TRACK_PLAY_ATTEMPT', 1)
+	MetricsMSP:SetCounter ('NEXT_TRACK_PLAY_ATTEMPT')
 
 	local params = {
 		REPORT_ERRORS = true,
@@ -1617,7 +1612,7 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 				statusChange = true
 			end
 			if (statusChange or status.status ~= 'OK_playing') then
-				MetricsMSP:SetCounter ('STATUS_' .. status.status, 1)
+				MetricsMSP:SetCounter ('STATUS_' .. status.status)
 			end
 		end
 	end
