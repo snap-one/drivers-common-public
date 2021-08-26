@@ -1,26 +1,56 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 2
+COMMON_METRICS_VER = 3
 
-local Metrics = {}
+local Metrics = {
+}
 
-function Metrics:new (namespace, options)
-	if (type (namespace) ~= 'string') then
-		print ('Metric namespace must be a non-empty string')
+function Metrics:new (group, version, identifier)
+
+	if (group == 'nil') then
+		group = tostring (C4:GetDriverConfigInfo ('name'))
+		version = tostring (C4:GetDriverConfigInfo ('version'))
+
+	elseif (type (group) == 'string') then
+		if (type (version) == 'number') then
+			version = tostring (version)
+		end
+		if (type (version) ~= 'string') then
+			error ('Metrics:new - version is required when specifying a metric group', 2)
+		end
+
+	else
+		error ('Metrics:new - group must be a string or nil', 2)
 		return
 	end
-	if (#namespace == 0) then
-		print ('Metric namespace must be a non-empty string')
-		return
+
+	if (type (identifier) ~= 'string') then
+		identifier = ''
 	end
+
+	local driverName = C4:GetDriverConfigInfo ('name')
+	local driverId = tostring (C4:GetDeviceID ())
+
+	group = self.GetSafeString (group)
+	version = self.GetSafeString (version)
+	identifier = self.GetSafeString (identifier, true)
+	driverName = self.GetSafeString (driverName)
+	driverId = self.GetSafeString (driverId)
+
+	local namespace = {
+		'driver',
+		group,
+		version,
+		identifier,
+		driverName,
+		driverId,
+	}
 
 	if (not (IN_PRODUCTION)) then
-		namespace = 'sandbox.' .. namespace
+		table.insert (namespace, 'sandbox', 1)
 	end
 
-	namespace = string.gsub (namespace, '[%:%|%@% ]+', '_')
-
-	namespace = namespace .. '.' .. tostring (C4:GetDeviceID ())
+	namespace = table.concat (namespace, '.')
 
 	if (Metrics.NameSpaces and Metrics.NameSpaces [namespace]) then
 		local metric = Metrics.NameSpaces [namespace]
@@ -47,12 +77,19 @@ function Metrics:SetCounter (key, value, sampleRate)
 		return
 	end
 
-	if (type (value) ~= 'number') then
-		print ('Cannot set stats counter ' .. key .. ' to non-number value')
-		return
+	if (type (key) ~= 'string') then
+		error ('Metrics:SetCounter - key must be a string', 2)
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (value == nil) then
+		value = 1
+	end
+
+	if (type (value) ~= 'number') then
+		error ('Metrics:SetCounter - Cannot set counter ' .. tostring (key) ..  ' to non-number value', 2)
+	end
+
+	key = self.GetSafeString (key)
 
 	C4:StatsdCounter (self.namespace, key, value, (sampleRate or 0))
 end
@@ -62,12 +99,15 @@ function Metrics:SetGauge (key, value)
 		return
 	end
 
-	if (type (value) ~= 'number') then
-		print ('Cannot set stats gauge ' .. key .. ' to non-number value')
-		return
+	if (type (key) ~= 'string') then
+		error ('Metrics:SetGauge - Metric key must be a string', 2)
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (type (value) ~= 'number') then
+		error ('Metrics:SetGauge - Cannot set stats gauge ' .. tostring (key) ..  ' to non-number value', 2)
+	end
+
+	key = self.GetSafeString (key)
 
 	C4:StatsdGauge (self.namespace, key, value)
 end
@@ -77,12 +117,15 @@ function Metrics:AdjustGauge (key, value)
 		return
 	end
 
-	if (type (value) ~= 'number') then
-		print ('Trying to adjust stats gauge ' .. key .. ' by non-number value')
-		return
+	if (type (key) ~= 'string') then
+		error ('Metrics:AdjustGauge - Metric key must be a string', 2)
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (type (value) ~= 'number') then
+		error ('Metrics:AdjustGauge - Trying to adjust stats gauge ' .. tostring (key) ..  ' by non-number value', 2)
+	end
+
+	key = self.GetSafeString (key)
 
 	C4:StatsdAdjustGauge (namespace, key, value)
 end
@@ -92,12 +135,15 @@ function Metrics:SetTimer (key, value)
 		return
 	end
 
-	if (type (value) ~= 'number') then
-		print ('Cannot set stats timer' .. key .. ' to non-number value')
-		return
+	if (type (key) ~= 'string') then
+		error ('Metrics:SetTimer - Metric key must be a string', 2)
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (type (value) ~= 'number') then
+		error ('Metrics:SetTimer - Cannot set stats timer ' .. tostring (key) ..  ' to non-number value', 2)
+	end
+
+	key = self.GetSafeString (key)
 
 	C4:StatsdTimer (self.namespace, key, value)
 end
@@ -107,12 +153,15 @@ function Metrics:SetString (key, value)
 		return
 	end
 
-	if (type (value) ~= 'string') then
-		print ('Cannot set stats string' .. key .. ' to non-string value')
-		return
+	if (type (key) ~= 'string') then
+		error ('Metrics:SetString - Metric key must be a string', 2)
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (type (value) ~= 'string') then
+		error ('Metrics:SetString - Cannot set stats string ' .. tostring (key) ..  ' to non-string value', 2)
+	end
+
+	key = self.GetSafeString (key)
 
 	value = string.gsub (value, '[\r\n]+', '    ')
 
@@ -124,12 +173,15 @@ function Metrics:SetJSON (key, value)
 		return
 	end
 
-	if (type (value) ~= 'string') then
-		print ('Cannot set stats JSONObject' .. key .. ' to non-string value')
-		return
+	if (type (key) ~= 'string') then
+		error ('Metrics:SetJSON - Metric key must be a string', 2)
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (type (value) ~= 'string') then
+		error ('Metrics:SetJSON - Cannot set stats JSONObject ' .. tostring (key) ..  ' to non-string value', 2)
+	end
+
+	key = self.GetSafeString (key)
 
 	value = string.gsub (value, '[\r\n]+', '    ')
 
@@ -141,9 +193,34 @@ function Metrics.SetIncrementingMeter (key, value)
 		return
 	end
 
-	key = string.gsub (key, '[%:%|%@% ]+', '_')
+	if (type (key) ~= 'string') then
+		error ('Metrics:SetIncrementingMeter - Metric key must be a string', 2)
+	end
+
+	if (type (value) ~= 'number') then
+		error ('Metrics:SetIncrementingMeter - Cannot set incremeting meter ' .. tostring (key) ..  ' to non-number value', 2)
+		return
+	end
+
+	key = self.GetSafeString (key)
 
 	C4:StatsdIncrementMeter (self.namespace, key, value)
+end
+
+function Metrics:GetSafeString (s, ignoreUselessStrings)
+	if (s == nil) then
+		return
+	end
+
+	s = tostring (s)
+	local p = '[^%w%-%_]+'
+	local safe = string.gsub (s, p, '_')
+
+	if (ignoreUselessStrings ~= true and string.gsub (safe, '_', '') == '') then
+		error ('Metrics:GetSafeString - generated a non-useful string', 3)
+	end
+
+	return safe
 end
 
 return Metrics
