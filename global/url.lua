@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 20
+COMMON_URL_VER = 21
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -19,12 +19,7 @@ do	--Globals
 end
 
 do	--Setup Metrics
-	local namespace = {
-		'driver.common.url',
-		C4:GetDriverConfigInfo ('name'),
-	}
-	namespace = table.concat (namespace, '.')
-	MetricsURL = Metrics:new (namespace)
+	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
 
 function MakeURL (path, args, suppressDefaultArgs)
