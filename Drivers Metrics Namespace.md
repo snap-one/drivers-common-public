@@ -26,13 +26,15 @@ The only allowable characters in any of the fields, or in the metric key, is the
 
 Any data is allowed in the metric value, but it is suggested to remove any carriage returns or newlines and replace them with a string of four spaces.
 
-It is suggested that the metric key should be in in PascalCase to maintain readability and reduce character counts.  This is not a requirement.
+It is suggested that the metric key should be in in PascalCase.  This is not a requirement, but will aid in maintaining readability and will reduce character counts compared to snake or kebab case.
+
+If the metric is reporting an error condition, the metric key should be of the form `Error_[ErrorName]`.  This is not a requirement, but will aid in sorting and discovery of errors.
 
 Additionally, drivers under development or metrics being prototyped should have their namespaces complete as above and then additonally be prefixed with `sandbox.`, to ensure that the metrics will work correctly and will not interfere with production metrics.
 
 ## Implementation
 
-This spec is implemented in the `metrics.lua` module published in the `drivers-common-public` github repository.  In order for this to generate production metrics, the Lua global variable `IN_PRODUCTION` must be set to true.  This is done automatically by including the content of the `drivers-common-internal` repository.
+This spec is implemented in the `metrics.lua` module published in the `drivers-common-public` github repository.  In order for this to generate production metrics, the Lua global variable `IN_PRODUCTION` must be set to true.  This is done automatically by using `pcall (require, 'drivers-common-internal.global.production')` which requires access to the `drivers-common-internal` repository.
 
 ### Usage
 
