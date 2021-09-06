@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 26
+COMMON_LIB_VER = 27
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -921,4 +921,16 @@ function GetConnections ()
 		end
 	end
 	return connections
+end
+
+function GetTableSize (t)
+	if (type (t) ~= 'table') then
+		return 0
+	end
+
+	local size = 0
+	for _, _ in pairs (t) do
+		size = size + 1
+	end
+	return size
 end
