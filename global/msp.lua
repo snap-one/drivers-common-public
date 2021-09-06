@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 88
+COMMON_MSP_VER = 89
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -359,6 +359,9 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 	elseif (strCommand == 'INTERNET_RADIO_SELECTED') then
 		OnInternetRadioSelected (idBinding, tParams)
 
+	elseif (strCommand == 'SELECT_INTERNET_RADIO_ERROR') then
+		OnInternetRadioSelectedError (idBinding, tParams)
+
 	elseif (strCommand == 'QUEUE_DELETED') then
 		OnQueueDeleted (idBinding, tParams)
 
@@ -700,6 +703,9 @@ function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips)
 			QueueSetShuffle (roomId)
 			trackList = SongQs [roomId].Q
 		end
+
+		MetricsMSP:SetCounter ('NewQueueAttempt')
+		MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
 	end
 
 	if (playNow) then
@@ -755,7 +761,7 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 	end
 	flags = table.concat (f, ',')
 
-	MetricsMSP:SetCounter ('TRACK_PLAY_ATTEMPT')
+	MetricsMSP:SetCounter ('TrackPlayAttempt')
 
 	local params = {
 		REPORT_ERRORS = true,
@@ -794,7 +800,7 @@ function SetNextTrackURL (nextURL, roomId, idInQ, flags)
 	end
 	flags = table.concat (f, ',')
 
-	MetricsMSP:SetCounter ('NEXT_TRACK_PLAY_ATTEMPT')
+	MetricsMSP:SetCounter ('NextTrackPlayAttempt')
 
 	local params = {
 		REPORT_ERRORS = true,
@@ -1202,6 +1208,10 @@ function CheckRoomHasDigitalAudio (roomId)
 		hasC4DA = (string.find (listenSources, tostring (C4_DIGITAL_AUDIO)) ~= nil)
 	end
 
+	if (hasC4DA == false) then
+		MetricsMSP:SetCounter ('Error_NoDigitalAudio')
+	end
+
 	return (hasC4DA)
 end
 
@@ -1394,6 +1404,14 @@ function OnInternetRadioSelected (idBinding, tParams)
 	local thisQ = SongQs [qId]
 end
 
+function OnInternetRadioSelectedError (idBinding, tParams)
+	local queueInfo = tonumber (tParams.QUEUE_INFO)
+
+	local roomId = tonumber (tParams.ROOM_ID)
+	local stationUrl = tParams.STATION_URL
+	MetricsMSP:SetCounter ('Error_OnInternetRadioSelected')
+end
+
 function OnQueueDeleted (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
@@ -1413,6 +1431,8 @@ function OnQueueDeleted (idBinding, tParams)
 	LogPlayEvent ('queue', qId, 'DELETED')
 
 	SongQs [qId] = nil
+	MetricsMSP:SetCounter ('QueueDeleted')
+	MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
 end
 
 function OnQueueInfoChanged (idBinding, tParams)
@@ -1505,6 +1525,8 @@ function OnQueueStateChanged (idBinding, tParams)
 				thisQ = SongQs [qId]
 				thisQ.Q._parent = thisQ
 				setmetatable (thisQ.Q, REPEAT_METATABLE)
+				MetricsMSP:SetCounter ('NewQueueComplete')
+				MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
 			end
 		end
 	end
@@ -1612,7 +1634,7 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 				statusChange = true
 			end
 			if (statusChange or status.status ~= 'OK_playing') then
-				MetricsMSP:SetCounter ('STATUS_' .. status.status)
+				MetricsMSP:SetCounter ('QueueStreamStatus_' .. status.status)
 			end
 		end
 	end
