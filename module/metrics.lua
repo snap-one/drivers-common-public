@@ -1,13 +1,13 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 3
+COMMON_METRICS_VER = 4
 
 local Metrics = {
 }
 
 function Metrics:new (group, version, identifier)
 
-	if (group == 'nil') then
+	if (group == nil) then
 		group = tostring (C4:GetDriverConfigInfo ('name'))
 		version = tostring (C4:GetDriverConfigInfo ('version'))
 
@@ -31,11 +31,11 @@ function Metrics:new (group, version, identifier)
 	local driverName = C4:GetDriverConfigInfo ('name')
 	local driverId = tostring (C4:GetDeviceID ())
 
-	group = self.GetSafeString (group)
-	version = self.GetSafeString (version)
-	identifier = self.GetSafeString (identifier, true)
-	driverName = self.GetSafeString (driverName)
-	driverId = self.GetSafeString (driverId)
+	group = self:GetSafeString (group)
+	version = self:GetSafeString (version)
+	identifier = self:GetSafeString (identifier, true)
+	driverName = self:GetSafeString (driverName)
+	driverId = self:GetSafeString (driverId)
 
 	local namespace = {
 		'driver',
@@ -47,7 +47,7 @@ function Metrics:new (group, version, identifier)
 	}
 
 	if (not (IN_PRODUCTION)) then
-		table.insert (namespace, 'sandbox', 1)
+		table.insert (namespace, 1, 'sandbox')
 	end
 
 	namespace = table.concat (namespace, '.')
@@ -89,7 +89,7 @@ function Metrics:SetCounter (key, value, sampleRate)
 		error ('Metrics:SetCounter - Cannot set counter ' .. tostring (key) ..  ' to non-number value', 2)
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	C4:StatsdCounter (self.namespace, key, value, (sampleRate or 0))
 end
@@ -107,7 +107,7 @@ function Metrics:SetGauge (key, value)
 		error ('Metrics:SetGauge - Cannot set stats gauge ' .. tostring (key) ..  ' to non-number value', 2)
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	C4:StatsdGauge (self.namespace, key, value)
 end
@@ -125,7 +125,7 @@ function Metrics:AdjustGauge (key, value)
 		error ('Metrics:AdjustGauge - Trying to adjust stats gauge ' .. tostring (key) ..  ' by non-number value', 2)
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	C4:StatsdAdjustGauge (namespace, key, value)
 end
@@ -143,7 +143,7 @@ function Metrics:SetTimer (key, value)
 		error ('Metrics:SetTimer - Cannot set stats timer ' .. tostring (key) ..  ' to non-number value', 2)
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	C4:StatsdTimer (self.namespace, key, value)
 end
@@ -161,7 +161,7 @@ function Metrics:SetString (key, value)
 		error ('Metrics:SetString - Cannot set stats string ' .. tostring (key) ..  ' to non-string value', 2)
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	value = string.gsub (value, '[\r\n]+', '    ')
 
@@ -181,14 +181,14 @@ function Metrics:SetJSON (key, value)
 		error ('Metrics:SetJSON - Cannot set stats JSONObject ' .. tostring (key) ..  ' to non-string value', 2)
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	value = string.gsub (value, '[\r\n]+', '    ')
 
 	C4:StatsdJSONObject (self.namespace, key, value)
 end
 
-function Metrics.SetIncrementingMeter (key, value)
+function Metrics:SetIncrementingMeter (key, value)
 	if (not C4.StatsdIncrementMeter) then
 		return
 	end
@@ -202,7 +202,7 @@ function Metrics.SetIncrementingMeter (key, value)
 		return
 	end
 
-	key = self.GetSafeString (key)
+	key = self:GetSafeString (key)
 
 	C4:StatsdIncrementMeter (self.namespace, key, value)
 end
