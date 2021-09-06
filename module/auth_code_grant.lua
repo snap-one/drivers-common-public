@@ -95,7 +95,7 @@ function oauth:MakeState (contextInfo, extras, uriToCompletePage)
 		extras = extras
 	}
 
-	self.metrics:SetCounter ('MakeStateAttempt', 1)
+	self.metrics:SetCounter ('MakeStateAttempt')
 	self:urlPost (url, data, headers, 'MakeStateResponse', context)
 end
 
@@ -109,7 +109,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 	local contextInfo = context.contextInfo
 
 	if (responseCode == 200) then
-		self.metrics:SetCounter ('MakeStateSuccess', 1)
+		self.metrics:SetCounter ('MakeStateSuccess')
 		local state = context.state
 		local extras = context.extras
 
@@ -203,7 +203,7 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	if (responseCode == 200 and data.code) then
 		-- state exists and has been authorized
 
-		self.metrics:SetCounter ('LinkCodeConfirmed', 1)
+		self.metrics:SetCounter ('LinkCodeConfirmed')
 
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
@@ -218,7 +218,7 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
-		self.metrics:SetCounter ('LinkCodeError', 1)
+		self.metrics:SetCounter ('LinkCodeError')
 
 		self:setLink ('')
 
@@ -230,7 +230,7 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
-		self.metrics:SetCounter ('LinkCodeDenied', 1)
+		self.metrics:SetCounter ('LinkCodeDenied')
 
 		self:setLink ('')
 
@@ -242,7 +242,7 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 404) then
 		-- state doesn't exist
 
-		self.metrics:SetCounter ('LinkCodeExpired', 1)
+		self.metrics:SetCounter ('LinkCodeExpired')
 
 		self:setLink ('')
 
@@ -345,7 +345,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	local contextInfo = context.contextInfo
 
 	if (responseCode == 200) then
-		self.metrics:SetCounter ('AccessTokenGranted', 1)
+		self.metrics:SetCounter ('AccessTokenGranted')
 
 		self.ACCESS_TOKEN = data.access_token
 		self.REFRESH_TOKEN = data.refresh_token or self.REFRESH_TOKEN
@@ -376,7 +376,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 
 	elseif (responseCode >= 400 and responseCode < 500) then
-		self.metrics:SetCounter ('AccessTokenDenied', 1)
+		self.metrics:SetCounter ('AccessTokenDenied')
 
 		self.ACCESS_TOKEN = nil
 		self.REFRESH_TOKEN = nil
