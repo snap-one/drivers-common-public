@@ -1,6 +1,8 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_HANDLERS = 10
+Metrics = require ('drivers-common-public.module.metrics')
+
+COMMON_HANDLERS_VER = 11
 
 --[[
 	Inbound Driver Functions:
@@ -194,6 +196,10 @@ do	--Globals
 	UIR = UIR or {}
 end
 
+do	--Setup Metrics
+	MetricsHandler = Metrics:new ('dcp_handler', COMMON_HANDLERS_VER)
+end
+
 function ExecuteCommand (strCommand, tParams)
 	tParams = tParams or {}
 	if (DEBUGPRINT) then
@@ -212,9 +218,9 @@ function ExecuteCommand (strCommand, tParams)
 		end
 	end
 
-	local success, ret
-
 	strCommand = string.gsub (strCommand, '%s+', '_')
+
+	local success, ret
 
 	if (EC and EC [strCommand] and type (EC [strCommand]) == 'function') then
 		success, ret = pcall (EC [strCommand], tParams)
@@ -223,7 +229,8 @@ function ExecuteCommand (strCommand, tParams)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('ExecuteCommand Lua error: ', strCommand, ret)
+		MetricsHandler:SetCounter ('Error_ExecuteCommand')
+		print ('ExecuteCommand error: ', ret, strCommand)
 	end
 end
 
@@ -249,7 +256,8 @@ function UIRequest (strCommand, tParams)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('UIRequest Lua error: ', strCommand, ret)
+		MetricsHandler:SetCounter ('Error_UIRequest')
+		print ('UIRequest error: ', ret, strCommand)
 	end
 end
 
@@ -270,7 +278,8 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('OnBindingChanged Lua error: ', idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+		MetricsHandler:SetCounter ('Error_OnBindingChanged')
+		print ('OnBindingChanged error: ', ret, idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
 	end
 
 end
@@ -292,7 +301,8 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('OnConnectionStatusChanged Lua error: ', idBinding, nPort, strStatus, ret)
+		MetricsHandler:SetCounter ('Error_OnConnectionStatusChanged')
+		print ('OnConnectionStatusChanged error: ', ret, idBinding, nPort, strStatus)
 	end
 end
 
@@ -318,9 +328,9 @@ function OnPropertyChanged (strProperty)
 		C4:DebugLog (output)
 	end
 
-	local success, ret
-
 	strProperty = string.gsub (strProperty, '%s+', '_')
+
+	local success, ret
 
 	if (OPC and OPC [strProperty] and type (OPC [strProperty]) == 'function') then
 		success, ret = pcall (OPC [strProperty], value)
@@ -329,7 +339,8 @@ function OnPropertyChanged (strProperty)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('OnPropertyChanged Lua error: ', strProperty, ret)
+		MetricsHandler:SetCounter ('Error_OnPropertyChanged')
+		print ('OnPropertyChanged error: ', ret, strProperty, value)
 	end
 end
 
@@ -348,7 +359,8 @@ function OnSystemEvent (event)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('OnSystemEvent Lua error: ', event, ret)
+		MetricsHandler:SetCounter ('Error_OnSystemEvent')
+		print ('OnSystemEvent error: ', ret, eventName, event)
 	end
 end
 
@@ -372,9 +384,9 @@ function OnVariableChanged (strVariable)
 		C4:DebugLog (output)
 	end
 
-	local success, ret
-
 	strVariable = string.gsub (strVariable, '%s+', '_')
+
+	local success, ret
 
 	if (OVC and OVC [strVariable] and type (OVC [strVariable]) == 'function') then
 		success, ret = pcall (OVC [strVariable], value)
@@ -383,7 +395,8 @@ function OnVariableChanged (strVariable)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('OnVariableChanged Lua error: ', strVariable, ret)
+		MetricsHandler:SetCounter ('Error_OnVariableChanged')
+		print ('OnVariableChanged error: ', ret, strVariable, value)
 	end
 end
 
@@ -392,11 +405,13 @@ function RegisterVariableListener (idDevice, idVariable, callback)
 
 	OWVC [idDevice] = OWVC [idDevice] or {}
 
-	OWVC [idDevice] [idVariable] = function (idDevice, idVariable, strValue)
-		pcall (callback, idDevice, idVariable, strValue)
+	if (type (callback) == 'function') then
+		OWVC [idDevice] [idVariable] = callback
+		C4:RegisterVariableListener (idDevice, idVariable)
+	else
+		MetricsHandler:SetCounter ('Error_RegisterVariableListener')
+		print ('RegisterVariableListener error (callback not a function): ', idDevice, idVariable, callback)
 	end
-
-	C4:RegisterVariableListener (idDevice, idVariable)
 end
 
 function UnregisterVariableListener (idDevice, idVariable)
@@ -422,12 +437,16 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue)
 			OWVC [idDevice] [idVariable] and
 			type (OWVC [idDevice] [idVariable]) == 'function') then
 		success, ret = pcall (OWVC [idDevice] [idVariable], idDevice, idVariable, strValue)
+	else
+		success = false
+		ret = 'Callback not available for registered variable'
 	end
 
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('OnWatchedVariableChanged Lua error: ', strVariable, ret)
+		MetricsHandler:SetCounter ('Error_OnWatchedVariableChanged')
+		print ('OnWatchedVariableChanged error: ', ret, idDevice, idVariable, strValue)
 	end
 end
 
@@ -451,7 +470,8 @@ function ReceivedFromNetwork (idBinding, nPort, strData)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('ReceivedFromNetwork Lua error: ', idBinding, nPort, strData, ret)
+		MetricsHandler:SetCounter ('Error_ReceivedFromNetwork')
+		print ('ReceivedFromNetwork error: ', ret, idBinding, nPort, strData)
 	end
 end
 
@@ -490,7 +510,8 @@ function ReceivedFromProxy (idBinding, strCommand, tParams)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('ReceivedFromProxy Lua error: ', idBinding, strCommand, ret)
+		MetricsHandler:SetCounter ('Error_ReceivedFromProxy')
+		print ('ReceivedFromProxy error: ', ret, idBinding, strCommand)
 	end
 end
 
@@ -515,6 +536,7 @@ function TestCondition (strConditionName, tParams)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		print ('TestCondition Lua error: ', idBinding, strCommand, ret)
+		MetricsHandler:SetCounter ('Error_TestCondition')
+		print ('TestCondition error: ', ret, strConditionName)
 	end
 end
