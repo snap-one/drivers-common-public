@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 21
+COMMON_URL_VER = 22
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -191,7 +191,7 @@ end
 function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 	for k, info in pairs (GlobalTicketHandlers) do
 		if (info.TICKET == ticketId) then
-			MetricsURL:SetCounter ('RX', 1)
+			MetricsURL:SetCounter ('RX')
 			table.remove (GlobalTicketHandlers, k)
 			ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		end
@@ -303,7 +303,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		if (data == nil and len ~= 0) then
 			print ('Content-Type indicated JSON but content is not valid JSON')
 
-			MetricsURL:SetCounter ('Error_RX_JSON', 1)
+			MetricsURL:SetCounter ('Error_RX_JSON')
 
 			data = {strData}
 		end
@@ -321,7 +321,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 
 	if (info.METHOD) then
-		MetricsURL:SetCounter ('RX_' .. info.METHOD, 1)
+		MetricsURL:SetCounter ('RX_' .. info.METHOD)
 	end
 
 	if (info.CALLBACK) then
@@ -409,7 +409,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 		t:SetOptions (options)
 
 		local _onDone = function (transfer, responses, errCode, errMsg)
-			MetricsURL:SetCounter ('RX', 1)
+			MetricsURL:SetCounter ('RX')
 
 			if (errCode == -1 and errMsg == nil) then
 				errMsg = 'Transfer cancelled'
@@ -430,7 +430,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 
 		t:OnDone (_onDone)
 
-		MetricsURL:SetCounter ('TX', 1)
+		MetricsURL:SetCounter ('TX')
 
 		if (method == 'GET') then
 			t:Get (url, headers)
@@ -455,7 +455,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 			}
 		end
 
-		MetricsURL:SetCounter ('TX', 1)
+		MetricsURL:SetCounter ('TX')
 
 		if (method == 'GET') then
 			info.TICKET = C4:urlGet (url, headers, false, ReceivedAsync, flags)
@@ -473,7 +473,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 			table.insert (GlobalTicketHandlers, info)
 
 		else
-			MetricsURL:SetCounter ('Error_TX', 1)
+			MetricsURL:SetCounter ('Error_TX')
 
 			dbg ('C4.Curl error: ' .. info.METHOD .. ' ' .. url)
 			if (callback) then
@@ -486,26 +486,26 @@ function urlDo (method, url, data, headers, callback, context, options)
 end
 
 function urlGet (url, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_GET', 1)
+	MetricsURL:SetCounter ('TX_GET')
 	urlDo ('GET', url, data, headers, callback, context, options)
 end
 
 function urlPost (url, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_POST', 1)
+	MetricsURL:SetCounter ('TX_POST')
 	urlDo ('POST', url, data, headers, callback, context, options)
 end
 
 function urlPut (url, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_PUT', 1)
+	MetricsURL:SetCounter ('TX_PUT')
 	urlDo ('PUT', url, data, headers, callback, context, options)
 end
 
 function urlDelete (url, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_DELETE', 1)
+	MetricsURL:SetCounter ('TX_DELETE')
 	urlDo ('DELETE', url, data, headers, callback, context, options)
 end
 
 function urlCustom (url, method, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_' .. method, 1)
+	MetricsURL:SetCounter ('TX_' .. method)
 	urlDo (method, url, data, headers, callback, context, options)
 end
