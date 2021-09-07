@@ -1,6 +1,6 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 86
+COMMON_MSP_VER = 89
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -8,6 +8,8 @@ require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
 require ('drivers-common-public.global.url')
+
+Metrics = require ('drivers-common-public.module.metrics')
 
 function JSON:assert()
 	-- We don't want the JSON library to assert but rather return nil in case of parsing errors
@@ -65,6 +67,10 @@ end
 
 do -- define proxy / binding IDs
 	MSP_PROXY = 5001
+end
+
+do	--Setup Metrics
+	MetricsMSP = Metrics:new ('dcp_msp', COMMON_MSP_VER)
 end
 
 function OnDriverDestroyed ()
@@ -352,6 +358,9 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 
 	elseif (strCommand == 'INTERNET_RADIO_SELECTED') then
 		OnInternetRadioSelected (idBinding, tParams)
+
+	elseif (strCommand == 'SELECT_INTERNET_RADIO_ERROR') then
+		OnInternetRadioSelectedError (idBinding, tParams)
 
 	elseif (strCommand == 'QUEUE_DELETED') then
 		OnQueueDeleted (idBinding, tParams)
@@ -694,6 +703,9 @@ function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips)
 			QueueSetShuffle (roomId)
 			trackList = SongQs [roomId].Q
 		end
+
+		MetricsMSP:SetCounter ('NewQueueAttempt')
+		MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
 	end
 
 	if (playNow) then
@@ -749,6 +761,8 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 	end
 	flags = table.concat (f, ',')
 
+	MetricsMSP:SetCounter ('TrackPlayAttempt')
+
 	local params = {
 		REPORT_ERRORS = true,
 		ROOM_ID = roomId,
@@ -785,6 +799,8 @@ function SetNextTrackURL (nextURL, roomId, idInQ, flags)
 		table.insert (f, thisFlag)
 	end
 	flags = table.concat (f, ',')
+
+	MetricsMSP:SetCounter ('NextTrackPlayAttempt')
 
 	local params = {
 		REPORT_ERRORS = true,
@@ -1192,6 +1208,10 @@ function CheckRoomHasDigitalAudio (roomId)
 		hasC4DA = (string.find (listenSources, tostring (C4_DIGITAL_AUDIO)) ~= nil)
 	end
 
+	if (hasC4DA == false) then
+		MetricsMSP:SetCounter ('Error_NoDigitalAudio')
+	end
+
 	return (hasC4DA)
 end
 
@@ -1384,6 +1404,14 @@ function OnInternetRadioSelected (idBinding, tParams)
 	local thisQ = SongQs [qId]
 end
 
+function OnInternetRadioSelectedError (idBinding, tParams)
+	local queueInfo = tonumber (tParams.QUEUE_INFO)
+
+	local roomId = tonumber (tParams.ROOM_ID)
+	local stationUrl = tParams.STATION_URL
+	MetricsMSP:SetCounter ('Error_OnInternetRadioSelected')
+end
+
 function OnQueueDeleted (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
@@ -1403,6 +1431,8 @@ function OnQueueDeleted (idBinding, tParams)
 	LogPlayEvent ('queue', qId, 'DELETED')
 
 	SongQs [qId] = nil
+	MetricsMSP:SetCounter ('QueueDeleted')
+	MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
 end
 
 function OnQueueInfoChanged (idBinding, tParams)
@@ -1495,6 +1525,8 @@ function OnQueueStateChanged (idBinding, tParams)
 				thisQ = SongQs [qId]
 				thisQ.Q._parent = thisQ
 				setmetatable (thisQ.Q, REPEAT_METATABLE)
+				MetricsMSP:SetCounter ('NewQueueComplete')
+				MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
 			end
 		end
 	end
@@ -1591,9 +1623,21 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
 
-	local status = ParseQueueStreamStatus (tParams.STATUS)
-
+	local status = ParseQueueStreamStatus (tParams.STATUS) or {}
 	local thisQ = SongQs [qId]
+
+	if (thisQ) then
+		if (status.status) then
+			local statusChange
+			if (thisQ.StreamStatus ~= status.status) then
+				thisQ.StreamStatus = status.status
+				statusChange = true
+			end
+			if (statusChange or status.status ~= 'OK_playing') then
+				MetricsMSP:SetCounter ('QueueStreamStatus_' .. status.status)
+			end
+		end
+	end
 end
 
 function ParseQueueStreamStatus (status)

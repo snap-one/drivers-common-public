@@ -1,12 +1,14 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 15
+AUTH_CODE_GRANT_VER = 18
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
 
 pcall (require, 'drivers-common-public.global.make_short_link')
+
+Metrics = require ('drivers-common-public.module.metrics')
 
 local oauth = {}
 
@@ -41,6 +43,8 @@ function oauth:new (tParams, initialRefreshToken)
 
 	setmetatable (o, self)
 	self.__index = self
+
+	o.metrics = Metrics:new ('dcp_auth_code', AUTH_CODE_GRANT_VER, (self.NAME or self.API_CLIENT_ID))
 
 	local _timer = function (timer)
 		if (initialRefreshToken == nil) then
@@ -91,6 +95,7 @@ function oauth:MakeState (contextInfo, extras, uriToCompletePage)
 		extras = extras
 	}
 
+	self.metrics:SetCounter ('MakeStateAttempt')
 	self:urlPost (url, data, headers, 'MakeStateResponse', context)
 end
 
@@ -104,6 +109,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 	local contextInfo = context.contextInfo
 
 	if (responseCode == 200) then
+		self.metrics:SetCounter ('MakeStateSuccess')
 		local state = context.state
 		local extras = context.extras
 
@@ -117,6 +123,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 
 			self:setLink ('')
 
+			self.metrics:SetCounter ('ActivationTimeOut')
 			self:notify ('ActivationTimeOut', contextInfo)
 		end
 
@@ -170,8 +177,6 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 	else
 		self:setLink (link, contextInfo)
 	end
-
-	self:notify ('LinkCodeReceived', contextInfo, link)
 end
 
 function oauth:CheckState (state, contextInfo, nonce)
@@ -196,11 +201,13 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 
 	if (responseCode == 200 and data.code) then
 		-- state exists and has been authorized
+
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
 		self:GetUserToken (data.code, contextInfo)
 
+		self.metrics:SetCounter ('LinkCodeConfirmed')
 		self:notify ('LinkCodeConfirmed', contextInfo)
 
 	elseif (responseCode == 204) then
@@ -209,31 +216,34 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
-		self:setLink ('')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
+		self:setLink ('')
+
+		self.metrics:SetCounter ('LinkCodeError')
 		self:notify ('LinkCodeError', contextInfo)
 
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
-		self:setLink ('')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
+		self:setLink ('')
+
+		self.metrics:SetCounter ('LinkCodeDenied')
 		self:notify ('LinkCodeDenied', contextInfo, data.error, data.error_description, data.error_uri)
 
 	elseif (responseCode == 404) then
 		-- state doesn't exist
 
-		self:setLink ('')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
+		self:setLink ('')
+
+		self.metrics:SetCounter ('LinkCodeExpired')
 		self:notify ('LinkCodeExpired', contextInfo)
 	end
 end
@@ -356,9 +366,12 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self:setLink ('')
 
+		self.metrics:SetCounter ('AccessTokenGranted')
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 
 	elseif (responseCode >= 400 and responseCode < 500) then
+		self.metrics:SetCounter ('AccessTokenDenied')
+
 		self.ACCESS_TOKEN = nil
 		self.REFRESH_TOKEN = nil
 
@@ -370,11 +383,18 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self:setLink ('')
 
+		self.metrics:SetCounter ('AccessTokenDenied')
 		self:notify ('AccessTokenDenied', contextInfo, data.error, data.error_description, data.error_uri)
 	end
 end
 
 function oauth:setLink (link, contextInfo)
+
+	if (link ~= '') then
+		self.metrics:SetCounter ('LinkCodeReceived')
+	end
+	self:notify ('LinkCodeReceived', contextInfo, link)
+
 	if (self.LINK_CHANGE_CALLBACK and type (self.LINK_CHANGE_CALLBACK) == 'function') then
 		local success, ret = pcall (self.LINK_CHANGE_CALLBACK, link, contextInfo)
 		if (success == false) then
