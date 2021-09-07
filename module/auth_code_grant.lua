@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 17
+AUTH_CODE_GRANT_VER = 18
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -123,6 +123,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 
 			self:setLink ('')
 
+			self.metrics:SetCounter ('ActivationTimeOut')
 			self:notify ('ActivationTimeOut', contextInfo)
 		end
 
@@ -176,8 +177,6 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 	else
 		self:setLink (link, contextInfo)
 	end
-
-	self:notify ('LinkCodeReceived', contextInfo, link)
 end
 
 function oauth:CheckState (state, contextInfo, nonce)
@@ -203,13 +202,12 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	if (responseCode == 200 and data.code) then
 		-- state exists and has been authorized
 
-		self.metrics:SetCounter ('LinkCodeConfirmed')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
 		self:GetUserToken (data.code, contextInfo)
 
+		self.metrics:SetCounter ('LinkCodeConfirmed')
 		self:notify ('LinkCodeConfirmed', contextInfo)
 
 	elseif (responseCode == 204) then
@@ -218,37 +216,34 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
-		self.metrics:SetCounter ('LinkCodeError')
-
-		self:setLink ('')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
+		self:setLink ('')
+
+		self.metrics:SetCounter ('LinkCodeError')
 		self:notify ('LinkCodeError', contextInfo)
 
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
-		self.metrics:SetCounter ('LinkCodeDenied')
-
-		self:setLink ('')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
+		self:setLink ('')
+
+		self.metrics:SetCounter ('LinkCodeDenied')
 		self:notify ('LinkCodeDenied', contextInfo, data.error, data.error_description, data.error_uri)
 
 	elseif (responseCode == 404) then
 		-- state doesn't exist
 
-		self.metrics:SetCounter ('LinkCodeExpired')
-
-		self:setLink ('')
-
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
+		self:setLink ('')
+
+		self.metrics:SetCounter ('LinkCodeExpired')
 		self:notify ('LinkCodeExpired', contextInfo)
 	end
 end
@@ -345,8 +340,6 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	local contextInfo = context.contextInfo
 
 	if (responseCode == 200) then
-		self.metrics:SetCounter ('AccessTokenGranted')
-
 		self.ACCESS_TOKEN = data.access_token
 		self.REFRESH_TOKEN = data.refresh_token or self.REFRESH_TOKEN
 
@@ -373,6 +366,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self:setLink ('')
 
+		self.metrics:SetCounter ('AccessTokenGranted')
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 
 	elseif (responseCode >= 400 and responseCode < 500) then
@@ -389,11 +383,18 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self:setLink ('')
 
+		self.metrics:SetCounter ('AccessTokenDenied')
 		self:notify ('AccessTokenDenied', contextInfo, data.error, data.error_description, data.error_uri)
 	end
 end
 
 function oauth:setLink (link, contextInfo)
+
+	if (link ~= '') then
+		self.metrics:SetCounter ('LinkCodeReceived')
+	end
+	self:notify ('LinkCodeReceived', contextInfo, link)
+
 	if (self.LINK_CHANGE_CALLBACK and type (self.LINK_CHANGE_CALLBACK) == 'function') then
 		local success, ret = pcall (self.LINK_CHANGE_CALLBACK, link, contextInfo)
 		if (success == false) then
