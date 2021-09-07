@@ -540,3 +540,29 @@ function TestCondition (strConditionName, tParams)
 		print ('TestCondition error: ', ret, strConditionName)
 	end
 end
+
+function UIRequest (strCommand, tParams)
+	strCommand = strCommand or ''
+	tParams = tParams or {}
+
+	if (DEBUGPRINT) then
+		local output = {'--- UIRequest: ' .. strCommand, '----PARAMS----'}
+		for k,v in pairs (tParams) do table.insert (output, tostring (k) .. ' = ' .. tostring (v)) end
+		table.insert (output, '---')
+		output = table.concat (output, '\r\n')
+		print (output)
+		C4:DebugLog (output)
+	end
+
+	local success, ret
+
+	if (UIR and UIR [strCommand] and type (UIR [strCommand]) == 'function') then
+		success, ret = pcall (UIR [strCommand], strCommand, tParams)
+	end
+
+	if (success == true) then
+		return (ret)
+	elseif (success == false) then
+		print ('UIRequest Lua error: ', strCommand, ret)
+	end
+end
