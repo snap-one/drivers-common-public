@@ -2,9 +2,9 @@
 
 ## Specification
 
-`driver.<group>.<version>.<identifier>.<driverName>.<driverId>`
+`drivers.<group>.<version>.<identifier>.<driverName>.<driverId>`
 
-All drivers metrics will begin with `driver.`
+All drivers metrics will begin with `drivers.`
 
 The second element will be the group of metrics being gathered:
 

@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 4
+COMMON_METRICS_VER = 5
 
 local Metrics = {
 }
@@ -38,7 +38,7 @@ function Metrics:new (group, version, identifier)
 	driverId = self:GetSafeString (driverId)
 
 	local namespace = {
-		'driver',
+		'drivers',
 		group,
 		version,
 		identifier,
