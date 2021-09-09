@@ -1,6 +1,6 @@
 -- Copyright 2019 Control4 Corporation. All rights reserved.
 
-AUTH_DEVICE_PIN_VER = 5
+AUTH_DEVICE_PIN_VER = 6
 
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
@@ -68,7 +68,7 @@ function oauth:GetPINCodeResponse (strError, responseCode, tHeaders, data, conte
 		self.device_code = data.device_code
 		local user_code = data.user_code
 		local verification_url = data.verification_url
-		local expires_in = data.expires_in or 5 * 60
+		local expires_in = data.expires_in or (5 * ONE_MINUTE)
 		local interval = data.interval or 5
 
 		if (self.notifyHandler.PINCodeReceived) then
@@ -168,7 +168,7 @@ function oauth:RefreshToken (contextInfo)
 
 	local url = self.TOKEN_ENDPOINT_URI
 
-	data = MakeURL (nil, args)
+	local data = MakeURL (nil, args)
 
 	local headers = {
 		['Content-Type'] = 'application/x-www-form-urlencoded',
