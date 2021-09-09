@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 5
+COMMON_METRICS_VER = 6
 
 local Metrics = {
 }
@@ -56,8 +56,6 @@ function Metrics:new (group, version, identifier)
 		local metric = Metrics.NameSpaces [namespace]
 		return metric
 	end
-
-	options = options or {}
 
 	local metric = {
 		namespace = namespace,
@@ -127,7 +125,7 @@ function Metrics:AdjustGauge (key, value)
 
 	key = self:GetSafeString (key)
 
-	C4:StatsdAdjustGauge (namespace, key, value)
+	C4:StatsdAdjustGauge (self.namespace, key, value)
 end
 
 function Metrics:SetTimer (key, value)
