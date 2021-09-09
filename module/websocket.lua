@@ -1,11 +1,15 @@
 -- Copyright 2021 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 4
+COMMON_WEBSOCKET_VER = 5
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
 
 local WebSocket = {}
+
+do -- define globals
+	DEBUG_WEBSOCKET = false
+end
 
 function WebSocket:new (url, additionalHeaders, wssOptions)
 	if (WebSocket.Sockets and WebSocket.Sockets [url]) then
@@ -491,7 +495,7 @@ function WebSocket:Mask (s, mask)
 	end
 
 	local slen = string.len (s)
-	local mlen = table.getn (mask)
+	local mlen = #mask
 
 	local packet = {}
 
