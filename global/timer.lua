@@ -1,10 +1,12 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_TIMER_VER = 9
+COMMON_TIMER_VER = 10
 
 do	--Globals
 	Timer = Timer or {}
 	TimerFunctions = TimerFunctions or {}
+
+	DEBUG_TIMER = false
 end
 
 do -- Define intervals as ms
@@ -135,6 +137,7 @@ function ExpireTimer (timerId, keepAlive)
 	end
 
 	if (TimerFunctions [timer]) then
+		local skips = 0
 		local success, ret = pcall (TimerFunctions [timer], timer, skips)
 		if (success == true) then
 			return (ret)
