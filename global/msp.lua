@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 89
+COMMON_MSP_VER = 90
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -63,6 +63,9 @@ do	--Globals
 		ThumbsDown = true,
 		ThumbsDownCancel = true,
 	}
+
+	DEBUG_DATA_RECEIVED = false
+	DEBUG_SEND_EVENT = false
 end
 
 do -- define proxy / binding IDs
@@ -1910,7 +1913,7 @@ function Navigator:urlDelete (idBinding, seq, url, headers, callback, context, o
 	self:urlDo (idBinding, seq, 'DELETE', url, data, headers, callback, context, options)
 end
 
-function Navigator:urlCustom (url, method, data, headers, callback, context, options)
+function Navigator:urlCustom (idBinding, seq, url, method, data, headers, callback, context, options)
 	self:urlDo (idBinding, seq, method, url, data, headers, callback, context, options)
 end
 
