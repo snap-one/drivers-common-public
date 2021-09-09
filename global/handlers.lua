@@ -2,7 +2,11 @@
 
 Metrics = require ('drivers-common-public.module.metrics')
 
-COMMON_HANDLERS_VER = 11
+COMMON_HANDLERS_VER = 12
+
+do -- define globals
+	DEBUG_RFN = false
+end
 
 --[[
 	Inbound Driver Functions:
@@ -516,7 +520,7 @@ function ReceivedFromProxy (idBinding, strCommand, tParams)
 end
 
 function TestCondition (strConditionName, tParams)
-	strCommand = strConditionName or ''
+	strConditionName = strConditionName or ''
 	tParams = tParams or {}
 
 	if (DEBUGPRINT) then
@@ -530,7 +534,7 @@ function TestCondition (strConditionName, tParams)
 	local success, ret
 
 	if (TC and TC [strConditionName] and type (TC [strConditionName]) == 'function') then
-		success, ret = pcall (TC [strCommand], strConditionName, tParams)
+		success, ret = pcall (TC [strConditionName], strConditionName, tParams)
 	end
 
 	if (success == true) then
