@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 27
+COMMON_LIB_VER = 28
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -697,7 +697,7 @@ function GetProject ()
 		j = JSON:decode (p)
 	end
 
-	success, err = pcall (f)
+	local success, err = pcall (f)
 
 	return (j)
 end
