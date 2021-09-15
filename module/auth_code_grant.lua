@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 18
+AUTH_CODE_GRANT_VER = 19
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -12,7 +12,7 @@ Metrics = require ('drivers-common-public.module.metrics')
 
 local oauth = {}
 
-function oauth:new (tParams, initialRefreshToken)
+function oauth:new (tParams, providedRefreshToken)
 	local o = {
 		NAME = tParams.NAME,
 		AUTHORIZATION = tParams.AUTHORIZATION,
@@ -44,31 +44,41 @@ function oauth:new (tParams, initialRefreshToken)
 	setmetatable (o, self)
 	self.__index = self
 
-	o.metrics = Metrics:new ('dcp_auth_code', AUTH_CODE_GRANT_VER, (self.NAME or self.API_CLIENT_ID))
+	o.metrics = Metrics:new ('dcp_auth_code', AUTH_CODE_GRANT_VER, (o.NAME or o.API_CLIENT_ID))
 
-	local _timer = function (timer)
-		if (initialRefreshToken == nil) then
-			local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. o.API_CLIENT_ID, SHA_ENC_DEFAULTS)
-			local encryptedToken = PersistGetValue (persistStoreKey)
-			if (encryptedToken) then
-				local encryptionKey = C4:GetDeviceID () .. o.API_SECRET .. o.API_CLIENT_ID
-				local refreshToken, error = SaltedDecrypt (encryptionKey, encryptedToken)
+	local initialRefreshToken
+
+	if (providedRefreshToken) then
+		initialRefreshToken = providedRefreshToken
+	else
+		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. o.API_CLIENT_ID, SHA_ENC_DEFAULTS)
+		local encryptedToken = PersistGetValue (persistStoreKey)
+		if (encryptedToken) then
+			local encryptionKey = C4:GetDeviceID () .. o.API_SECRET .. o.API_CLIENT_ID
+			local refreshToken, errString = SaltedDecrypt (encryptionKey, encryptedToken)
+			if (errString) then
+				o.metrics:SetString ('Error_DecryptRefreshToken', errString)
+			end
 				if (refreshToken) then
-					initialRefreshToken = refreshToken
-				end
+				initialRefreshToken = refreshToken
 			end
 		end
-
-		o:RefreshToken (nil, initialRefreshToken)
 	end
 
-	SetTimer (nil, ONE_SECOND, _timer)
+	if (initialRefreshToken) then
+		o.metrics:SetCounter ('InitWithToken')
+		local _timer = function (timer)
+			o:RefreshToken (nil, initialRefreshToken)
+		end
+		SetTimer (nil, ONE_SECOND, _timer)
+	else
+		o.metrics:SetCounter ('InitWithoutToken')
+	end
 
 	return o
 end
 
 function oauth:MakeState (contextInfo, extras, uriToCompletePage)
-	--print ('MakeState', contextInfo, extras, uriToCompletePage)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -100,7 +110,6 @@ function oauth:MakeState (contextInfo, extras, uriToCompletePage)
 end
 
 function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, context, url)
-	--print ('MakeStateResponse', strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with MakeState', strError)
 		return
@@ -139,7 +148,6 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 end
 
 function oauth:GetLinkCode (state, contextInfo, extras)
-	--print ('GetLinkCode', state, contextInfo, extras)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -180,7 +188,6 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 end
 
 function oauth:CheckState (state, contextInfo, nonce)
-	--print ('CheckState', state, contextInfo, nonce)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -191,7 +198,6 @@ function oauth:CheckState (state, contextInfo, nonce)
 end
 
 function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, context, url)
-	--print ('CheckStateResponse', strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with CheckState:', strError)
 		return
@@ -249,7 +255,6 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 end
 
 function oauth:GetUserToken (code, contextInfo)
-	--print ('GetUserToken', code, contextInfo)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -285,13 +290,12 @@ function oauth:GetUserToken (code, contextInfo)
 end
 
 function oauth:RefreshToken (contextInfo, newRefreshToken)
-	--print ('RefreshToken')
-
 	if (newRefreshToken) then
 		self.REFRESH_TOKEN = newRefreshToken
 	end
 
 	if (self.REFRESH_TOKEN == nil) then
+		self.metrics:SetCounter ('NoRefreshToken')
 		return
 	end
 
@@ -327,7 +331,6 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 end
 
 function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
-	--print ('GetTokenResponse', strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with GetToken:', strError)
 		local _timer = function (timer)
@@ -346,7 +349,10 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
 
 		local encryptionKey = C4:GetDeviceID () .. self.API_SECRET .. self.API_CLIENT_ID
-		local encryptedToken = SaltedEncrypt (encryptionKey, self.REFRESH_TOKEN)
+		local encryptedToken, errString = SaltedEncrypt (encryptionKey, self.REFRESH_TOKEN)
+		if (errString) then
+			self.metrics:SetString ('Error_EncryptRefreshToken', errString)
+		end
 
 		PersistSetValue (persistStoreKey, encryptedToken)
 
@@ -370,8 +376,6 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 
 	elseif (responseCode >= 400 and responseCode < 500) then
-		self.metrics:SetCounter ('AccessTokenDenied')
-
 		self.ACCESS_TOKEN = nil
 		self.REFRESH_TOKEN = nil
 
@@ -389,7 +393,6 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 end
 
 function oauth:setLink (link, contextInfo)
-
 	if (link ~= '') then
 		self.metrics:SetCounter ('LinkCodeReceived')
 	end
