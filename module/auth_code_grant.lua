@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 19
+AUTH_CODE_GRANT_VER = 20
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -296,7 +296,7 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 
 	if (self.REFRESH_TOKEN == nil) then
 		self.metrics:SetCounter ('NoRefreshToken')
-		return
+		return false
 	end
 
 	if (type (contextInfo) ~= 'table') then
