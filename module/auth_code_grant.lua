@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 20
+AUTH_CODE_GRANT_VER = 21
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -239,6 +239,12 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 		self:setLink ('')
 
 		self.metrics:SetCounter ('LinkCodeDenied')
+		if (data.error) then
+			self.metrics:SetString ('LinkCodeDeniedReason', data.error)
+		end
+		if (data.error_description) then
+			self.metrics:SetString ('LinkCodeDeniedDescription', data.error_description)
+		end
 		self:notify ('LinkCodeDenied', contextInfo, data.error, data.error_description, data.error_uri)
 
 	elseif (responseCode == 404) then
@@ -387,7 +393,14 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self:setLink ('')
 
+
 		self.metrics:SetCounter ('AccessTokenDenied')
+		if (data.error) then
+			self.metrics:SetString ('AccessTokenDeniedReason', data.error)
+		end
+		if (data.error_description) then
+			self.metrics:SetString ('AccessTokenDeniedDescription', data.error_description)
+		end
 		self:notify ('AccessTokenDenied', contextInfo, data.error, data.error_description, data.error_uri)
 	end
 end
