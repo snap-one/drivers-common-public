@@ -1,9 +1,11 @@
 -- Copyright 2021 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 5
+COMMON_WEBSOCKET_VER = 6
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
+
+Metrics = require ('drivers-common-public.module.metrics')
 
 local WebSocket = {}
 
@@ -12,13 +14,15 @@ do -- define globals
 end
 
 function WebSocket:new (url, additionalHeaders, wssOptions)
+	if (type (additionalHeaders) ~= 'table') then
+		additionalHeaders = nil
+	end
+
 	if (WebSocket.Sockets and WebSocket.Sockets [url]) then
 		local ws = WebSocket.Sockets [url]
 		ws.additionalHeaders = additionalHeaders
 		return ws
 	end
-
-	local ws -- our WebSocket object
 
 	local protocol, host, port, resource -- important values to be incorporated into our WebSocket object
 
@@ -51,7 +55,7 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 	end
 
 	if (protocol and host and port and resource) then
-		ws = {
+		local ws = {
 			url = url,
 			protocol = protocol,
 			host = host,
@@ -66,13 +70,17 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 		setmetatable (ws, self)
 		self.__index = self
 
+		ws.metrics = Metrics:new ('dcp_websocket', COMMON_WEBSOCKET_VER)
+
 		WebSocket.Sockets = WebSocket.Sockets or {}
 		WebSocket.Sockets [url] = ws
 
+		ws.metrics:SetCounter ('Init')
 		ws:setupC4Connection ()
 
 		return ws
 	else
+		self.metrics:SetCounter ('Error_Init')
 		return nil, 'invalid WebSocket URL provided:' .. (url or '')
 	end
 end
@@ -91,6 +99,7 @@ function WebSocket:delete ()
 		end
 	end
 
+	self.metrics:SetCounter ('Delete')
 	return nil
 end
 
@@ -98,9 +107,11 @@ function WebSocket:Start ()
 	print ('Starting Web Socket... Opening net connection to ' .. self.url)
 
 	if (self.netBinding and self.protocol and self.port) then
+		self.metrics:SetCounter ('Start')
 		C4:NetDisconnect (self.netBinding, self.port)
 		C4:NetConnect (self.netBinding, self.port)
 	else
+		self.metrics:SetCounter ('Error_Start')
 		print ('C4 network connection not setup')
 	end
 
@@ -180,6 +191,10 @@ end
 function WebSocket:SetProcessMessageFunction (f)
 	local _f = function (websocket, data)
 		local success, ret = pcall (f, websocket, data)
+		if (success == false) then
+			self.metrics:SetCounter ('Error_ProcessMessageCallback')
+			print ('Websocket callback ProcessMessage error: ', ret, data)
+		end
 	end
 	self.ProcessMessage = _f
 
@@ -189,6 +204,10 @@ end
 function WebSocket:SetClosedByRemoteFunction (f)
 	local _f = function (websocket)
 		local success, ret = pcall (f, websocket)
+		if (success == false) then
+			self.metrics:SetCounter ('Error_ClosedByRemoteCallback')
+			print ('Websocket callback ClosedByRemote error: ', ret, data)
+		end
 	end
 	self.ClosedByRemote = _f
 
@@ -198,6 +217,10 @@ end
 function WebSocket:SetEstablishedFunction (f)
 	local _f = function (websocket)
 		local success, ret = pcall (f, websocket)
+		if (success == false) then
+			self.metrics:SetCounter ('Error_EstablishedCallback')
+			print ('Websocket callback Established error: ', ret, data)
+		end
 	end
 	self.Established = _f
 
@@ -207,6 +230,10 @@ end
 function WebSocket:SetOfflineFunction (f)
 	local _f = function (websocket)
 		local success, ret = pcall (f, websocket)
+		if (success == false) then
+			self.metrics:SetCounter ('Error_OfflineCallback')
+			print ('Websocket callback Offline error: ', ret, data)
+		end
 	end
 	self.Offline = _f
 
@@ -245,6 +272,8 @@ function WebSocket:setupC4Connection ()
 		RFN [self.netBinding] = function (idBinding, nPort, strData)
 			self:ParsePacket (strData)
 		end
+	else
+		self.metrics:SetCounter ('Error_NoNetBinding')
 	end
 	return self
 end
@@ -340,6 +369,7 @@ function WebSocket:parseWSPacket ()
 			if (mask) then
 				thisFragment = self:Mask (thisFragment, mask)
 			else
+				self.metrics:SetCounter ('Error_NoMaskReceived')
 				print ('masked bit set but no mask received')
 				self.buf = ''
 				return
@@ -348,6 +378,7 @@ function WebSocket:parseWSPacket ()
 		self.buf = string.sub (self.buf, headerlen + msglen + 1)
 
 		if (opcode == 0x08) then
+			self.metrics:SetCounter ('ClosedByRemote')
 			if (DEBUG_WEBSOCKET) then
 				print ('RX CLOSE REQUEST')
 			end
@@ -368,6 +399,7 @@ function WebSocket:parseWSPacket ()
 
 		elseif (opcode == 0x00) then -- continuation frame
 			if (not self.fragment) then
+				self.metrics:SetCounter ('Error_FramesOutOfOrder')
 				print ('error: received continuation frame before start frame')
 				self.buf = ''
 				return
@@ -427,6 +459,7 @@ function WebSocket:parseHTTPPacket ()
 			string.lower (headers ['CONNECTION']) == 'upgrade') then
 
 			self.running = true
+			self.metrics:SetCounter ('Running')
 			if (self.Established) then
 				self:Established ()
 			end
@@ -466,11 +499,14 @@ function WebSocket:ConnectionChanged (strStatus)
 			self:Ping ()
 		end
 		self.PingTimer = SetTimer (self.PingTimer, self.ping_interval * ONE_SECOND, _timer, true)
+		self.metrics:SetCounter ('Connected')
 		print ('WS ' .. self.url .. ' connected')
 	else
 		if (self.running) then
+			self.metrics:SetCounter ('DisconnectedWhileRunning')
 			print ('WS ' .. self.url .. ' disconnected while running')
 		else
+			self.metrics:SetCounter ('DisconnectedWhileNotRunning')
 			print ('WS ' .. self.url .. ' disconnected while not running')
 		end
 		self.running = false
