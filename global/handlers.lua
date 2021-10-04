@@ -2,7 +2,7 @@
 
 Metrics = require ('drivers-common-public.module.metrics')
 
-COMMON_HANDLERS_VER = 12
+COMMON_HANDLERS_VER = 13
 
 do -- define globals
 	DEBUG_RFN = false
@@ -455,7 +455,13 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue)
 end
 
 function ReceivedFromNetwork (idBinding, nPort, strData)
-	if (DEBUGPRINT) then
+	local suppressRFN
+
+	if (WebSocket and WebSocket.Sockets and WebSocket.Sockets [idBinding]) then
+		suppressRFN = not (DEBUG_RFN or DEBUG_WEBSOCKET)
+	end
+
+	if (DEBUGPRINT and not suppressRFN) then
 		local output = {'--- ReceivedFromNetwork: ' .. idBinding, nPort, #strData}
 		if (DEBUG_RFN) then
 			table.insert (output, strData)
