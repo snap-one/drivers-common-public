@@ -2,7 +2,7 @@
 
 Metrics = require ('drivers-common-public.module.metrics')
 
-COMMON_HANDLERS_VER = 13
+COMMON_HANDLERS_VER = 14
 
 do -- define globals
 	DEBUG_RFN = false
@@ -457,8 +457,16 @@ end
 function ReceivedFromNetwork (idBinding, nPort, strData)
 	local suppressRFN
 
-	if (WebSocket and WebSocket.Sockets and WebSocket.Sockets [idBinding]) then
-		suppressRFN = not (DEBUG_RFN or DEBUG_WEBSOCKET)
+	if (WebSocket) then
+		if (WebSocket.Sockets and WebSocket.Sockets [idBinding]) then
+			suppressRFN = not (DEBUG_RFN or DEBUG_WEBSOCKET)
+		end
+	end
+
+	if (SSDP) then
+		if (SSDP.SearchTargets and SSDP.SearchTargets [idBinding]) then
+			suppressRFN = not (DEBUG_RFN)
+		end
 	end
 
 	if (DEBUGPRINT and not suppressRFN) then
