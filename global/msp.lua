@@ -152,9 +152,10 @@ function OnDriverLateInit ()
 	end
 
 	C4_DIGITAL_AUDIO = next (C4:GetDevicesByC4iName ('control4_digitalaudio.c4i'))
-
-	RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_QUEUE_SETTINGS, OWVC.ParseQueueSettingsInfo)
-	RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_MAP_INFO, OWVC.ParseRoomMapInfo)
+  if (C4_DIGITAL_AUDIO) then
+	  RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_QUEUE_SETTINGS, OWVC.ParseQueueSettingsInfo)
+	  RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_MAP_INFO, OWVC.ParseRoomMapInfo)
+  end
 
 	RegisterRooms ()
 
