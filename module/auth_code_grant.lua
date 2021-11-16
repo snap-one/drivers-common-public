@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 21
+AUTH_CODE_GRANT_VER = 22
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -403,6 +403,13 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		end
 		self:notify ('AccessTokenDenied', contextInfo, data.error, data.error_description, data.error_uri)
 	end
+end
+
+function oauth:DeleteRefreshToken ()
+	local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
+	PersistDeleteValue (persistStoreKey)
+
+	self.metrics:SetCounter ('RefreshTokenDeleted')
 end
 
 function oauth:setLink (link, contextInfo)
