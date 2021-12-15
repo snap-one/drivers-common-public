@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 90
+COMMON_MSP_VER = 91
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -21,6 +21,8 @@ do	--Globals
 
 	QueueMap = QueueMap or {}
 	RoomQIDMap = RoomQIDMap or {}
+
+	SaveQueueForRoom = SaveQueueForRoom or {}
 
 	RoomSettings = RoomSettings or {}
 
@@ -210,6 +212,47 @@ function OnDriverLateInit ()
 		else
 			dbg ('OnDriverLateInitTasks: an error occured: ' .. ret)
 		end
+	end
+end
+
+function EC.RecallQueueForRoom (tParams)
+	local roomId = tParams.Room
+	local thisQ = SaveQueueForRoom [roomId]
+	if (thisQ == nil) then
+		return
+	end
+
+	for qId, existingQ in pairs (SongQs) do
+		if (existingQ == thisQ) then
+			JoinRoomToSession (roomId, qId)
+			return
+		end
+	end
+
+	SongQs [roomId] = thisQ
+
+	if (thisQ.RADIO) then
+		GetNextProgrammedTrack (thisQ.RADIO, roomId)
+	else
+		local nextTrack = thisQ.Q [thisQ.CurrentTrack]
+		if (nextTrack and roomId) then
+			GetTrackURLAndPlay (nextTrack, roomId)
+		end
+	end
+end
+
+function EC.SaveQueueForRoom (tParams)
+	local roomId = tParams.Room
+	local qId = GetQueueIDByRoomID (roomId)
+	local thisQ = SongQs [qId]
+	if (thisQ) then
+		SaveQueueForRoom [roomId] = thisQ
+
+		local _timer = function (timer)
+			SaveQueueForRoom [roomId] = nil
+		end
+
+		SetTimer ('SaveRoomQueue-' .. tostring (roomId), 5 * ONE_MINUTE, _timer)
 	end
 end
 
