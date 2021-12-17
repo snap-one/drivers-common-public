@@ -216,43 +216,80 @@ function OnDriverLateInit ()
 end
 
 function EC.RecallQueueForRoom (tParams)
-	local roomId = tParams.Room
-	local thisQ = SaveQueueForRoom [roomId]
-	if (thisQ == nil) then
-		return
-	end
+	local roomList = tParams.Room
 
-	for qId, existingQ in pairs (SongQs) do
-		if (existingQ == thisQ) then
-			JoinRoomToSession (roomId, qId)
-			return
+	local queues = {}
+
+	for room in string.gmatch (roomList, '(%d+)') do
+		local roomId = tonumber (room)
+		local thisQ = SaveQueueForRoom [roomId]
+		SaveQueueForRoom [roomId] = nil
+		if (thisQ) then
+			local makeNew = true
+			for qId, existingQ in pairs (SongQs) do
+				if (existingQ == thisQ) then
+					JoinRoomToSession (roomId, qId)
+					makeNew = false
+				end
+			end
+			if (makeNew) then
+				for _, queue in ipairs (queues) do
+					if (queue.thisQ == thisQ) then
+						table.insert (queue.rooms, roomId)
+						makeNew = false
+					end
+				end
+			end
+			if (makeNew) then
+				local queue = {
+					thisQ = thisQ,
+					rooms = {
+						roomId,
+					},
+				}
+				table.insert (queues, queue)
+			end
 		end
 	end
 
-	SongQs [roomId] = thisQ
+	for _, queue in ipairs (queues) do
+		local thisQ = queue.thisQ
+		local roomId = table.remove (queue.rooms, 1)
 
-	if (thisQ.RADIO) then
-		GetNextProgrammedTrack (thisQ.RADIO, roomId)
-	else
-		local nextTrack = thisQ.Q [thisQ.CurrentTrack]
-		if (nextTrack and roomId) then
-			GetTrackURLAndPlay (nextTrack, roomId)
+		if (thisQ and roomId) then
+			SongQs [roomId] = thisQ
+
+			if (thisQ.RADIO) then
+				GetNextProgrammedTrack (thisQ.RADIO, roomId)
+			else
+				local nextTrack = thisQ.Q [thisQ.CurrentTrack]
+				if (nextTrack and roomId) then
+					GetTrackURLAndPlay (nextTrack, roomId)
+				end
+			end
+
+			if (#queue.rooms > 0) then
+				local extraRooms = table.concat (queue.rooms, ',')
+				local args = {
+					ROOM_ID = roomId,
+					ROOM_ID_LIST = extraRooms,
+				}
+				C4:SendToDevice (C4_DIGITAL_AUDIO, 'ADD_ROOMS_TO_SESSION', args)
+			end
 		end
 	end
 end
 
 function EC.SaveQueueForRoom (tParams)
-	local roomId = tParams.Room
-	local qId = GetQueueIDByRoomID (roomId)
-	local thisQ = SongQs [qId]
-	if (thisQ) then
-		SaveQueueForRoom [roomId] = thisQ
+	local roomList = tParams.Room
 
-		local _timer = function (timer)
-			SaveQueueForRoom [roomId] = nil
+	for room in string.gmatch (roomList, '(%d+)') do
+		local roomId = tonumber (room)
+		local qId = GetQueueIDByRoomID (roomId)
+		local thisQ = SongQs [qId]
+		if (thisQ) then
+			SaveQueueForRoom [roomId] = thisQ
 		end
-
-		SetTimer ('SaveRoomQueue-' .. tostring (roomId), 5 * ONE_MINUTE, _timer)
 	end
 end
 
