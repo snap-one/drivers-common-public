@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 91
+COMMON_MSP_VER = 92
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -228,6 +228,9 @@ function EC.RecallQueueForRoom (tParams)
 			local makeNew = true
 			for qId, existingQ in pairs (SongQs) do
 				if (existingQ == thisQ) then
+					thisQ.RestoreTrack = nil
+					thisQ.RestoreTrackPosition = nil
+					thisQ.RestoreTrackPlayState = nil
 					JoinRoomToSession (roomId, qId)
 					makeNew = false
 				end
@@ -260,9 +263,11 @@ function EC.RecallQueueForRoom (tParams)
 			SongQs [roomId] = thisQ
 
 			if (thisQ.RADIO) then
+				thisQ.RestoreTrack = nil
+				thisQ.RestoreTrackPosition = nil
 				GetNextProgrammedTrack (thisQ.RADIO, roomId)
 			else
-				local nextTrack = thisQ.Q [thisQ.CurrentTrack]
+				local nextTrack = thisQ.Q [thisQ.RestoreTrack]
 				if (nextTrack and roomId) then
 					GetTrackURLAndPlay (nextTrack, roomId)
 				end
@@ -289,6 +294,9 @@ function EC.SaveQueueForRoom (tParams)
 		local thisQ = SongQs [qId]
 		if (thisQ) then
 			SaveQueueForRoom [roomId] = thisQ
+			thisQ.RestoreTrack = thisQ.CurrentTrack
+			thisQ.RestoreTrackPosition = thisQ.CurrentTrackElapsed
+			thisQ.RestoreTrackPlayState = thisQ.CurrentState
 		end
 	end
 end
@@ -1719,6 +1727,35 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 			end
 			if (statusChange or status.status ~= 'OK_playing') then
 				MetricsMSP:SetCounter ('QueueStreamStatus_' .. status.status)
+			end
+			if (statusChange and status.status == 'OK_playing') then
+
+				local roomId = GetRoomMapByQueueID (qId) [1]
+
+				if (thisQ.RestoreTrack) then
+					thisQ.RestoreTrack = nil
+				end
+
+				if (thisQ.RestoreTrackPosition) then
+					local pos = thisQ.RestoreTrackPosition
+					if (not (thisQ.STREAM or thisQ.RADIO)) then
+						local params = {
+							ROOM_ID = roomId,
+							POSITION = pos * 1000,
+							TYPE = 'relative',
+						}
+						C4:SendToDevice (C4_DIGITAL_AUDIO, 'SEEK', params)
+						thisQ.CurrentTrackElapsed = thisQ.CurrentTrackElapsed + pos
+					end
+					thisQ.RestoreTrackPosition = nil
+				end
+
+				if (thisQ.RestoreTrackPlayState) then
+					if (thisQ.RestoreTrackPlayState ~= 'PLAY') then
+						C4:SendToDevice (roomId, 'PAUSE', {})
+					end
+					thisQ.RestoreTrackPlayState = nil
+				end
 			end
 		end
 	end
