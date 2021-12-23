@@ -216,7 +216,7 @@ function OnDriverLateInit ()
 end
 
 function EC.RecallQueueForRoom (tParams)
-	local roomList = tParams.Room
+	local roomList = tParams.Room or ''
 
 	local queues = {}
 
@@ -266,6 +266,10 @@ function EC.RecallQueueForRoom (tParams)
 				thisQ.RestoreTrack = nil
 				thisQ.RestoreTrackPosition = nil
 				GetNextProgrammedTrack (thisQ.RADIO, roomId)
+			elseif (thisQ.STREAM) then
+					thisQ.RestoreTrack = nil
+					thisQ.RestoreTrackPosition = nil
+					GetTrackURLAndPlay (thisQ.STREAM, roomId)
 			else
 				local nextTrack = thisQ.Q [thisQ.RestoreTrack]
 				if (nextTrack and roomId) then
@@ -286,7 +290,7 @@ function EC.RecallQueueForRoom (tParams)
 end
 
 function EC.SaveQueueForRoom (tParams)
-	local roomList = tParams.Room
+	local roomList = tParams.Room or ''
 
 	for room in string.gmatch (roomList, '(%d+)') do
 		local roomId = tonumber (room)
@@ -1752,7 +1756,7 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 
 				if (thisQ.RestoreTrackPlayState) then
 					if (thisQ.RestoreTrackPlayState ~= 'PLAY') then
-						C4:SendToDevice (roomId, 'PAUSE', {})
+						C4:SendToDevice (roomId, thisQ.RestoreTrackPlayState, {})
 					end
 					thisQ.RestoreTrackPlayState = nil
 				end
