@@ -1,6 +1,6 @@
 -- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
 
-COMMON_LIB_VER = 28
+COMMON_LIB_VER = 29
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -277,6 +277,63 @@ function ConvertTime (data, incHours)
 		hours, minutes, seconds = tonumber (hours), tonumber (minutes), tonumber (seconds)
 		return ((hours * 3600) + (minutes * 60) + seconds)
 	end
+end
+
+function RelativeTime (timeNow, timeThen, prefix)
+	-- TODO : implement this with gettext for internationalization
+
+	local diff = math.abs (timeNow - timeThen)
+	local past = timeNow > timeThen
+	local future = timeThen > timeNow
+
+	local ret
+
+	local words = {
+		{ name = 'second', duration = 1 },
+		{ name = 'minute', duration = 60 },
+		{ name = 'hour', duration = 60 * 60 },
+		{ name = 'day', duration = 24 * 60 * 60 },
+		{ name = 'week', duration = 7 * 24 * 60 * 60 },
+		{ name = 'month', duration = 30 * 24 * 60 * 60 },
+		{ name = 'year', duration = 365 * 24 * 60 * 60 },
+	}
+
+	if (diff == 0) then
+		ret = 'now'
+	else
+		for i, word in ipairs (words) do
+			if (diff < word.duration) then
+				ret = tostring (math.floor (diff / words [i-1].duration)) .. ' ' .. words [i-1].name .. 's'
+				break
+			elseif (diff < word.duration * 2) then
+				if (word.name == 'hour') then
+					ret = 'an hour'
+				else
+					ret = 'a ' .. word.name
+				end
+				break
+			elseif (diff < word.duration * 5) then
+				ret = 'a few ' .. word.name .. 's'
+				break
+			end
+		end
+	end
+
+	if (ret == nil) then
+		ret = 'a long time'
+	end
+
+	if (past) then
+		ret = ret .. ' ago'
+	elseif (future) then
+		ret = ret .. ' from now'
+	end
+
+	if (type (prefix) == 'string') then
+		ret = prefix .. ret
+	end
+
+	return ret
 end
 
 function XMLDecode (s)
