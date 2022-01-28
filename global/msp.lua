@@ -1396,7 +1396,8 @@ function UpdateProgress (qId)
 				}
 			else
 				local elapsed = GetTimeString (thisQ.CurrentTrackElapsed)
-				local remaining = GetTimeString (GetTimeNumber (thisQ.CurrentTrackDuration) - elapsed)
+				local duration = GetTimeNumber (thisQ.CurrentTrackDuration)
+				local remaining = GetTimeString (duration - elapsed)
 				args = {
 					length = GetTimeNumber (thisQ.CurrentTrackDuration),
 					offset = GetTimeNumber (thisQ.CurrentTrackElapsed),
