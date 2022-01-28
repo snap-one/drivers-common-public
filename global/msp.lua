@@ -1,6 +1,6 @@
--- Copyright 2021 Snap One, LLC. All rights reserved.
+-- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 90
+COMMON_MSP_VER = 91
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -746,9 +746,11 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 		thisQ.CurrentTrackElapsed = (position and math.floor (position / ONE_SECOND)) or 0
 		thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
 
-		for i, track in ipairs (thisQ.Q) do
-			if (idInQ == track.idInQ) then
-				thisQ.CurrentTrack = i
+		if (idInQ ~= nil) then
+			for i, track in ipairs (thisQ.Q) do
+				if (idInQ == track.idInQ) then
+					thisQ.CurrentTrack = i
+				end
 			end
 		end
 	end
@@ -1383,16 +1385,35 @@ function UpdateProgress (qId)
 		local rooms = GetRoomMapByQueueID (qId)
 		rooms = table.concat (rooms, ',')
 
+		local args
+
 		if (UPDATE_FREQ) then
 			if (thisQ.STREAM) then
-				local label = ConvertTime (thisQ.CurrentTrackElapsed)
-				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', {length = 1, offset = 1, label = label})
+				args = {
+					length = 1,
+					offset = 1,
+					label = GetTimeString (thisQ.CurrentTrackElapsed),
+				}
 			else
-				local label = ConvertTime (thisQ.CurrentTrackElapsed) .. ' / -' .. ConvertTime (thisQ.CurrentTrackDuration - thisQ.CurrentTrackElapsed)
-				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', {length = thisQ.CurrentTrackDuration, offset = thisQ.CurrentTrackElapsed, label = label})
+				local elapsed = GetTimeString (thisQ.CurrentTrackElapsed)
+				local remaining = GetTimeString (GetTimeNumber (thisQ.CurrentTrackDuration) - elapsed)
+				args = {
+					length = GetTimeNumber (thisQ.CurrentTrackDuration),
+					offset = GetTimeNumber (thisQ.CurrentTrackElapsed),
+					label = elapsed .. ' / -' .. remaining,
+				}
+				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 			end
 		else
-			SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', {length = 0, offset = 0, label = ''})
+			args = {
+				length = 0,
+				offset = 0,
+				label = '',
+			}
+		end
+
+		if (args) then
+			SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 		end
 	end
 end
@@ -1480,7 +1501,7 @@ function OnQueueNeedNext (idBinding, tParams)
 			table.insert (thisQ.Q, nextTrack)
 		end
 
-		thisQ.CurrentTrackElapsed = ConvertTime (thisQ.Q [thisQ.CurrentTrack].duration)
+		thisQ.CurrentTrackElapsed = GetTimeNumber (thisQ.Q [thisQ.CurrentTrack].duration)
 
 		LogPlayEvent ('queue', qId, 'END', nextTrack)
 
@@ -1494,9 +1515,11 @@ function OnQueueNeedNext (idBinding, tParams)
 			thisQ.CurrentTrackElapsed = 0
 			thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
 
-			for i, track in ipairs (thisQ.Q) do
-				if (nextTrack.idInQ == track.idInQ) then
-					thisQ.CurrentTrack = i
+			if (nextTrack.idInQ ~= nil) then
+				for i, track in ipairs (thisQ.Q) do
+					if (nextTrack.idInQ == track.idInQ) then
+						thisQ.CurrentTrack = i
+					end
 				end
 			end
 
@@ -1542,7 +1565,7 @@ function OnQueueStateChanged (idBinding, tParams)
 		thisQ.PreviousState = previousState
 
 		local thisTrack = thisQ.Q [thisQ.CurrentTrack] or {}
-		thisQ.CurrentTrackDuration = ConvertTime (thisTrack.duration)
+		thisQ.CurrentTrackDuration = GetTimeNumber (thisTrack.duration)
 
 		thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
 
@@ -1941,15 +1964,16 @@ function Navigator:QueueSelect (idBinding, seq, args)
 		local idInQ = tonumber (args.idInQ)
 		local nextTrack
 
-		for _, track in ipairs (thisQ.Q) do
-			if (track.idInQ == idInQ) then
-				nextTrack = track
+		if (idInQ ~= nil) then
+			for _, track in ipairs (thisQ.Q) do
+				if (track.idInQ == idInQ) then
+					nextTrack = track
+				end
 			end
 		end
 
-		LogPlayEvent ('user', qId, 'QUEUE_SELECT', nextTrack)
-
 		if (nextTrack and self.roomId) then
+			LogPlayEvent ('user', qId, 'QUEUE_SELECT', nextTrack)
 			GetTrackURLAndPlay (nextTrack, self.roomId)
 		end
 	end
