@@ -260,6 +260,9 @@ function GetTimeString (data, forceHours)
 
 	elseif (type (data) == 'string') then
 		return data
+
+	else
+		return 0
 	end
 end
 
@@ -287,18 +290,21 @@ function GetTimeNumber (data)
 
 	elseif (type (data) == 'number') then
 		return data
+
+	else
+		return 0
 	end
 end
 
 function ConvertTime (data, forceHours)
-	if (data == nil) then
-		return (0)
-
-	elseif (type (data) == 'number') then
+	if (type (data) == 'number') then
 		return (GetTimeString (data, forceHours))
 
 	elseif (type (data) == 'string') then
 		return (GetTimeNumber (data))
+
+	else
+		return 0
 	end
 end
 
