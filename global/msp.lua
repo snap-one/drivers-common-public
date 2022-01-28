@@ -1395,13 +1395,17 @@ function UpdateProgress (qId)
 					label = GetTimeString (thisQ.CurrentTrackElapsed),
 				}
 			else
-				local elapsed = GetTimeString (thisQ.CurrentTrackElapsed)
+				local elapsed = GetTimeNumber (thisQ.CurrentTrackElapsed)
 				local duration = GetTimeNumber (thisQ.CurrentTrackDuration)
-				local remaining = GetTimeString (duration - elapsed)
+				local remaining = duration - elapsed
+
+				local remainingString = GetTimeString (remaining)
+				local elapsedString = GetTimeString (thisQ.CurrentTrackElapsed)
+
 				args = {
 					length = GetTimeNumber (thisQ.CurrentTrackDuration),
 					offset = GetTimeNumber (thisQ.CurrentTrackElapsed),
-					label = elapsed .. ' / -' .. remaining,
+					label = elapsedString .. ' / -' .. remainingString,
 				}
 				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 			end
