@@ -1,6 +1,6 @@
--- Copyright 2020 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 29
+COMMON_LIB_VER = 30
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -233,14 +233,10 @@ function GetLocationInfo ()
 	return lat, long, cc, zip, city
 end
 
-function ConvertTime (data, incHours)
-	-- Converts a string of [HH:]MM:SS to an integer representing the number of seconds
-	-- Converts an integer number of seconds to a string of [HH:]MM:SS. If HH is zero, it is omitted unless incHours is true
+function GetTimeString (data, forceHours)
+	-- Converts an integer number of seconds to a string of [HH:]MM:SS. If HH is zero, it is omitted unless forceHours is true
 
-	if (data == nil) then
-		return (0)
-
-	elseif (type (data) == 'number') then
+	if (type (data) == 'number') then
 		local strTime = ''
 		local strHours, strMinutes, strSeconds
 
@@ -250,7 +246,7 @@ function ConvertTime (data, incHours)
 
 		strHours = string.format('%d', hours)
 
-		if (hours ~= 0 or incHours) then
+		if (hours ~= 0 or forceHours) then
 			strTime = strHours .. ':'
 			strMinutes = string.format('%02d', minutes)
 		else
@@ -263,19 +259,47 @@ function ConvertTime (data, incHours)
 		return strTime
 
 	elseif (type (data) == 'string') then
-		local hours, minutes, seconds = string.match (data, '^(%d-):(%d-):?(%d-)$')
+		return data
+	end
+end
 
+function GetTimeNumber (data)
+	-- Converts a string of [HH:]MM:SS to an integer representing the number of seconds
+	local hours, minutes, seconds = string.match (data, '^(%d-):(%d-):?(%d-)$')
+
+	if (type (data) == 'string') then
 		if (hours == '') then hours = nil end
 		if (minutes == '') then minutes = nil end
 		if (seconds == '') then seconds = nil end
 
-		if (hours and not minutes) then minutes = hours hours = 0
-		elseif (minutes and not hours ) then hours = 0
-		elseif (not minutes and not hours) then minutes = 0 hours = 0 seconds = seconds or 0
+		if (hours and not minutes) then
+			minutes = hours
+			hours = 0
+		elseif (minutes and not hours ) then
+			hours = 0
+		elseif (not minutes and not hours) then
+			minutes = 0
+			hours = 0
+			seconds = seconds or 0
 		end
 
 		hours, minutes, seconds = tonumber (hours), tonumber (minutes), tonumber (seconds)
 		return ((hours * 3600) + (minutes * 60) + seconds)
+
+	elseif (type (data) == 'number') then
+		return data
+	end
+end
+
+function ConvertTime (data, forceHours)
+	if (data == nil) then
+		return (0)
+
+	elseif (type (data) == 'number') then
+		return (GetTimeString (data, forceHours))
+
+	elseif (type (data) == 'string') then
+		return (GetTimeNumber (data))
 	end
 end
 
