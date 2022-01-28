@@ -265,9 +265,8 @@ end
 
 function GetTimeNumber (data)
 	-- Converts a string of [HH:]MM:SS to an integer representing the number of seconds
-	local hours, minutes, seconds = string.match (data, '^(%d-):(%d-):?(%d-)$')
-
 	if (type (data) == 'string') then
+		local hours, minutes, seconds = string.match (data, '^(%d-):(%d-):?(%d-)$')
 		if (hours == '') then hours = nil end
 		if (minutes == '') then minutes = nil end
 		if (seconds == '') then seconds = nil end
