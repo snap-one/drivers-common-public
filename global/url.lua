@@ -1,6 +1,6 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 22
+COMMON_URL_VER = 23
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -16,6 +16,8 @@ do	--Globals
 	MAX_CACHE = 100
 
 	USE_NEW_URL = VersionCheck ('3.0.0')
+
+	DEBUG_URL = DEBUG_URL or false
 end
 
 do	--Setup Metrics
@@ -248,9 +250,20 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 
 	if (DEBUG_URL) then
+		local t, ms
+		if (C4.GetTime) then
+			t = C4:GetTime ()
+			ms = '.' .. tostring (t % 1000)
+			t = math.floor (t / 1000)
+		else
+			t = os.time ()
+			ms = ''
+		end
+		local s = os.date ('%x %X') .. ms
+
 		local d = {
 			'---',
-			'RX',
+			'RX ' .. s,
 		}
 
 		if (eTagHit) then
@@ -324,10 +337,16 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		MetricsURL:SetCounter ('RX_' .. info.METHOD)
 	end
 
-	if (info.CALLBACK) then
-		info.CALLBACK (strError, responseCode, tHeaders, data, info.CONTEXT, info.URL)
+	if (info.CALLBACK and type (info.CALLBACK) == 'function') then
+		success, ret = pcall (info.CALLBACK, strError, responseCode, tHeaders, data, info.CONTEXT, info.URL)
 	end
-	return
+
+	if (success == true) then
+		return (ret)
+	elseif (success == false) then
+		MetricsHandler:SetCounter ('Error_Callback')
+		print ('URL response callback error: ', ret, info.URL)
+	end
 end
 
 function urlDo (method, url, data, headers, callback, context, options)
@@ -366,9 +385,21 @@ function urlDo (method, url, data, headers, callback, context, options)
 	end
 
 	if (DEBUG_URL) then
+		local t, ms
+		if (C4.GetTime) then
+			t = C4:GetTime ()
+			ms = '.' .. tostring (t % 1000)
+			t = math.floor (t / 1000)
+		else
+			t = os.time ()
+			ms = ''
+		end
+		local s = os.date ('%x %X') .. ms
+
+
 		local d = {
 			'---',
-			'TX',
+			'TX ' .. s,
 		}
 
 		table.insert (d, '')
@@ -396,6 +427,13 @@ function urlDo (method, url, data, headers, callback, context, options)
 	if (USE_NEW_URL) then
 		local t = C4:url ()
 
+		local startTime
+		if (C4.GetTime) then
+			startTime = C4:GetTime ()
+		else
+			startTime = os.time () * 1000
+		end
+
 		options = CopyTable (options) or {}
 
 		if (options ['cookies_enable'] == nil) then
@@ -410,6 +448,15 @@ function urlDo (method, url, data, headers, callback, context, options)
 
 		local _onDone = function (transfer, responses, errCode, errMsg)
 			MetricsURL:SetCounter ('RX')
+
+			local endTime
+			if (C4.GetTime) then
+				endTime = C4:GetTime ()
+			else
+				endTime = os.time () * 1000
+			end
+			local interval = endTime - startTime
+			MetricsURL:SetTimer ('TXtoRX', interval)
 
 			if (errCode == -1 and errMsg == nil) then
 				errMsg = 'Transfer cancelled'
@@ -426,6 +473,15 @@ function urlDo (method, url, data, headers, callback, context, options)
 			end
 
 			ProcessResponse (strData, responseCode, tHeaders, strError, info)
+
+			local processTime
+			if (C4.GetTime) then
+				processTime = C4:GetTime ()
+			else
+				processTime = os.time () * 1000
+			end
+			local interval = processTime - startTime
+			MetricsURL:SetTimer ('TXtoDone', interval)
 		end
 
 		t:OnDone (_onDone)
