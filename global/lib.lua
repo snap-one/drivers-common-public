@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 30
+COMMON_LIB_VER = 31
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -148,7 +148,18 @@ end
 
 function dbg (strDebugText, ...)
 	if (DEBUGPRINT) then
-		print (os.date ('%x %X : ') .. (strDebugText or ''), ...)
+		local t, ms
+		if (C4.GetTime) then
+			t = C4:GetTime ()
+			ms = '.' .. tostring (t % 1000)
+			t = math.floor (t / 1000)
+		else
+			t = os.time ()
+			ms = ''
+		end
+		local s = os.date ('%x %X') .. ms .. ' : '
+
+		print (s .. (strDebugText or ''), ...)
 		C4:DebugLog (strDebugText)
 	end
 end
