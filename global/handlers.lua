@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 15
+COMMON_HANDLERS_VER = 16
 
 do -- define globals
 	DEBUG_RFN = false
@@ -233,7 +233,18 @@ function HandlerDebug (init, tParams, args)
 		end
 	end
 
-	table.insert (output, 1, '-->')
+	local t, ms
+	if (C4.GetTime) then
+		t = C4:GetTime ()
+		ms = '.' .. tostring (t % 1000)
+		t = math.floor (t / 1000)
+	else
+		t = os.time ()
+		ms = ''
+	end
+	local s = os.date ('%x %X') .. ms
+
+	table.insert (output, 1, '-->  ' .. s)
 	table.insert (output, '<--')
 	output = table.concat (output, '\r\n')
 	print (output)
