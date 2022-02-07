@@ -1,9 +1,11 @@
 -- Copyright 2021 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 6
+COMMON_METRICS_VER = 7
 
 local Metrics = {
 }
+
+DEBUG_METRICS = DEBUG_METRICS or false
 
 function Metrics:new (group, version, identifier)
 
@@ -90,6 +92,9 @@ function Metrics:SetCounter (key, value, sampleRate)
 	key = self:GetSafeString (key)
 
 	C4:StatsdCounter (self.namespace, key, value, (sampleRate or 0))
+	if (DEBUG_METRICS) then
+		print ('Metrics:SetCounter:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:SetGauge (key, value)
@@ -108,6 +113,9 @@ function Metrics:SetGauge (key, value)
 	key = self:GetSafeString (key)
 
 	C4:StatsdGauge (self.namespace, key, value)
+	if (DEBUG_METRICS) then
+		print ('Metrics:SetGauge:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:AdjustGauge (key, value)
@@ -126,6 +134,9 @@ function Metrics:AdjustGauge (key, value)
 	key = self:GetSafeString (key)
 
 	C4:StatsdAdjustGauge (self.namespace, key, value)
+	if (DEBUG_METRICS) then
+		print ('Metrics:AdjustGauge:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:SetTimer (key, value)
@@ -144,6 +155,9 @@ function Metrics:SetTimer (key, value)
 	key = self:GetSafeString (key)
 
 	C4:StatsdTimer (self.namespace, key, value)
+	if (DEBUG_METRICS) then
+		print ('Metrics:SetTimer:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:SetString (key, value)
@@ -164,6 +178,9 @@ function Metrics:SetString (key, value)
 	value = string.gsub (value, '[\r\n]+', '    ')
 
 	C4:StatsdString (self.namespace, key, value)
+	if (DEBUG_METRICS) then
+		print ('Metrics:SetString:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:SetJSON (key, value)
@@ -184,6 +201,9 @@ function Metrics:SetJSON (key, value)
 	value = string.gsub (value, '[\r\n]+', '    ')
 
 	C4:StatsdJSONObject (self.namespace, key, value)
+	if (DEBUG_METRICS) then
+		print ('Metrics:SetJSON:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:SetIncrementingMeter (key, value)
@@ -203,6 +223,9 @@ function Metrics:SetIncrementingMeter (key, value)
 	key = self:GetSafeString (key)
 
 	C4:StatsdIncrementMeter (self.namespace, key, value)
+	if (DEBUG_METRICS) then
+		print ('Metrics:SetIncrementMeter:', self.namespace, key, tostring (value))
+	end
 end
 
 function Metrics:GetSafeString (s, ignoreUselessStrings)
