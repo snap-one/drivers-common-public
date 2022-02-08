@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 91
+COMMON_MSP_VER = 92
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2188,7 +2188,7 @@ function Navigator:ConfirmLogOut (idBinding, seq, args)
 		Logout ()
 	end
 
-	return ({['NextScreen tabId="' .. HomeTabId .. '"'] = HomeScreenId})
+	return ({NextScreen = '#home'})
 end
 
 function Navigator:SettingChanged (idBinding, seq, args)
