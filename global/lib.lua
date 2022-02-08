@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 31
+COMMON_LIB_VER = 32
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -229,19 +229,21 @@ end
 function GetLocationInfo ()
 	local proj = XMLDecode (C4:GetProjectItems ('LOCATIONS', 'LIMIT_DEVICE_DATA', 'NO_ROOT_TAGS'))
 
-	local lat = string.match (proj, '<latitude>(.-)</latitude>')
-	local long = string.match (proj, '<longitude>(.-)</longitude>')
-	local cc = string.match (proj, '<country_code>(.-)</country_code>')
-	local zip = string.match (proj, '<zipcode>(.-)</zipcode>')
-	local city = string.match (proj, '<city_name>(.-)</city_name>')
+	local lat = XMLCapture (proj, 'latitude>')
+	local long = XMLCapture (proj, 'longitude>')
+	local cc = XMLCapture (proj, 'country_code')
+	local zip = XMLCapture (proj, 'zipcode')
+	local city = XMLCapture (proj, 'city_name')
+	local timezone = XMLCapture (proj, 'timezone')
 
 	if (lat == '') then lat = nil end
 	if (long == '') then long = nil end
 	if (cc == '') then cc = nil end
 	if (zip == '') then zip = nil end
 	if (city == '') then city = nil end
+	if (timezone == '') then timezone = nil end
 
-	return lat, long, cc, zip, city
+	return lat, long, cc, zip, city, timezone
 end
 
 function GetTimeString (data, forceHours)
