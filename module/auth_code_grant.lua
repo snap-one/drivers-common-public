@@ -1,6 +1,6 @@
--- Copyright 2021 Snap One, LLC. All rights reserved.
+-- Copyright 2022 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 22
+AUTH_CODE_GRANT_VER = 23
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -408,6 +408,10 @@ end
 function oauth:DeleteRefreshToken ()
 	local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
 	PersistDeleteValue (persistStoreKey)
+	self.ACCESS_TOKEN = nil
+	self.REFRESH_TOKEN = nil
+
+	self.Timer.RefreshToken = CancelTimer (self.Timer.RefreshToken)
 
 	self.metrics:SetCounter ('RefreshTokenDeleted')
 end
