@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 92
+COMMON_MSP_VER = 93
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -152,10 +152,10 @@ function OnDriverLateInit ()
 	end
 
 	C4_DIGITAL_AUDIO = next (C4:GetDevicesByC4iName ('control4_digitalaudio.c4i'))
-  if (C4_DIGITAL_AUDIO) then
-	  RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_QUEUE_SETTINGS, OWVC.ParseQueueSettingsInfo)
-	  RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_MAP_INFO, OWVC.ParseRoomMapInfo)
-  end
+	if (C4_DIGITAL_AUDIO) then
+		RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_QUEUE_SETTINGS, OWVC.ParseQueueSettingsInfo)
+		RegisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_MAP_INFO, OWVC.ParseRoomMapInfo)
+	end
 
 	RegisterRooms ()
 
@@ -360,10 +360,10 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 		end
 		return
 
-	elseif (strCommand == 'INTERNET_RADIO_SELECTED') then
+	elseif (strCommand == 'INTERNET_RADIO_SELECTED' or strCommand == 'AUDIO_URL_SELECTED') then
 		OnInternetRadioSelected (idBinding, tParams)
 
-	elseif (strCommand == 'SELECT_INTERNET_RADIO_ERROR') then
+	elseif (strCommand == 'SELECT_INTERNET_RADIO_ERROR' or strCommand == 'SELECT_AUDIO_URL_ERROR') then
 		OnInternetRadioSelectedError (idBinding, tParams)
 
 	elseif (strCommand == 'QUEUE_DELETED') then
@@ -723,7 +723,7 @@ function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips)
 	return qId, playNow
 end
 
-function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
+function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position, hardPause)
 	if (CheckRoomHasDigitalAudio (roomId) == false) then
 		dbg ('Tried to start digital audio in room with no Digital Audio:', roomId)
 		--return
@@ -769,16 +769,26 @@ function PlayTrackURL (url, roomId, idInQ, flags, nextURL, position)
 
 	MetricsMSP:SetCounter ('TrackPlayAttempt')
 
+	if (idInQ == nil) then
+		idInQ = tostring (os.time ())
+	end
+
 	local params = {
-		REPORT_ERRORS = true,
 		ROOM_ID = roomId,
 		STATION_URL = url,
 		QUEUE_INFO = idInQ,
 		FLAGS = flags,
 		NEXT_URL = nextURL,
 		POSITION = position,
+		HARD_PAUSE = hardPause,
 	}
-	C4:SendToProxy (MSP_PROXY, 'SELECT_INTERNET_RADIO', params, 'COMMAND')
+
+	local command = 'SELECT_AUDIO_URL'
+	if (not (VersionCheck ('2.10.0'))) then
+		command = 'SELECT_INTERNET_RADIO'
+		params.REPORT_ERRORS = true
+	end
+	C4:SendToProxy (MSP_PROXY, command, params, 'COMMAND')
 end
 
 function SetNextTrackURL (nextURL, roomId, idInQ, flags)
