@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 23
+AUTH_CODE_GRANT_VER = 24
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -75,7 +75,9 @@ function oauth:new (tParams, providedRefreshToken)
 		o.metrics:SetCounter ('InitWithoutToken')
 	end
 
-	return o
+	local willGenerateRefreshEvent = (initialRefreshToken ~= nil)
+
+	return o, willGenerateRefreshEvent
 end
 
 function oauth:MakeState (contextInfo, extras, uriToCompletePage)
