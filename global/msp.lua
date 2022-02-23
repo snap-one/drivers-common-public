@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 94
+COMMON_MSP_VER = 95
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2171,24 +2171,10 @@ function Navigator:CancelLogOut (idBinding, seq, args)
 end
 
 function Navigator:ConfirmLogOut (idBinding, seq, args)
-	for qId, thisQ in pairs (SongQs or {}) do
-		local roomId = GetRoomMapByQueueID (qId) [1]
-		if (roomId) then
-			C4:SendToDevice (roomId, 'STOP', {})
+	for roomId, deviceId in pairs (RoomIDDigitalMedia) do
+		if (deviceId == PROXY_ID) then
+			C4:SendToDevice (roomId, 'ROOM_OFF', {})
 		end
-
-		local _timer = function (timer)
-			thisQ.Q = {}
-			thisQ.Q._parent = thisQ
-			setmetatable (thisQ.Q, REPEAT_METATABLE)
-			thisQ.CurrentTrack = 0
-			thisQ.RADIO = nil
-			thisQ.STREAM = nil
-			UpdateQueue (qId)
-			UpdateDashboard (qId)
-			UpdateMediaInfo (qId)
-		end
-		SetTimer (nil, 5 * ONE_SECOND, _timer)
 	end
 
 	self.AuthSettings = {}
