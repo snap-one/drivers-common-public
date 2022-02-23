@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 95
+COMMON_MSP_VER = 96
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -132,6 +132,8 @@ function OnDriverLateInit ()
 		C4:SendToProxy (MSP_PROXY, 'DISABLE_DRIVER', {}, 'COMMAND')
 		return
 	end
+
+	OPC.Debug_Mode (Properties ['Debug Mode'])
 
 	KillAllTimers ()
 	if (C4.AllowExecute) then C4:AllowExecute (not (IN_PRODUCTION)) end
@@ -280,10 +282,15 @@ function OWVC.ParseRoomIdSource (idDevice, idVariable, strValue)
 	local roomId = tonumber (idDevice)
 	local deviceId = tonumber (strValue) or 0
 	RoomIDSources [roomId] = deviceId
+end
 
-	if (deviceId == C4_DIGITAL_AUDIO) then
-		local playingAudioDevice = tonumber (C4:GetDeviceVariable (roomId, ROOM_VARS.PLAYING_AUDIO_DEVICE)) or 0
-		RoomIDDigitalMedia [roomId] = playingAudioDevice
+function OWVC.ParseRoomIdPlayingSource (idDevice, idVariable, strValue)
+	local roomId = tonumber (idDevice)
+	local deviceId = tonumber (strValue) or 0
+	RoomIDPlayingSources [roomId] = deviceId
+
+	if (RoomIDSources [roomId] == C4_DIGITAL_AUDIO) then
+		RoomIDDigitalMedia [roomId] = deviceId
 	else
 		RoomIDDigitalMedia [roomId] = 0
 	end
@@ -1043,11 +1050,13 @@ end
 function RegisterRooms ()
 	RoomIDs = C4:GetDevicesByC4iName ('roomdevice.c4i')
 	RoomIDSources = {}
+	RoomIDPlayingSources = {}
 	RoomIDDigitalMedia = {}
 	RoomIDRoutes = {}
 	for roomId, _ in pairs (RoomIDs) do
 		RegisterVariableListener (roomId, ROOM_VARS.CURRENT_SELECTED_DEVICE, OWVC.ParseRoomIdSource)
 		RegisterVariableListener (roomId, ROOM_VARS.CURRENT_AUDIO_PATH, OWVC.ParseRoomIdRoute)
+		RegisterVariableListener (roomId, ROOM_VARS.PLAYING_AUDIO_DEVICE, OWVC.ParseRoomIdPlayingSource)
 	end
 end
 
