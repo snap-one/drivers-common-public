@@ -1,6 +1,6 @@
--- Copyright 2021 Wirepath Home Systems, LLC. All rights reserved.
+-- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 6
+COMMON_WEBSOCKET_VER = 7
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -48,10 +48,7 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 	port = tonumber (port)
 
 	if (type (wssOptions) ~= 'table') then
-		wssOptions = {
-			verify_mode = 'peer',
-			verify_method = 'tlsv1',
-		}
+		wssOptions = {}
 	end
 
 	if (protocol and host and port and resource) then
