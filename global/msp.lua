@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 96
+COMMON_MSP_VER = 97
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -558,6 +558,10 @@ function SendEvent (idBinding, navId, roomId, name, args)
 		data = tostring (args)
 	elseif (type (args) == 'table') then
 		data = XMLTag (nil, args, false, false)
+	end
+
+	if (type (roomId) == 'table') then
+		roomId = table.concat (roomId, ',')
 	end
 
 	local tParams = {
