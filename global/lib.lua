@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 32
+COMMON_LIB_VER = 33
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -866,11 +866,25 @@ function GetLocals (depth)
 	return vars
 end
 
-function GetRandomString (len)
+function GetRandomString (length, alphaFirst)
+	if (type (length) ~= 'number') then
+		length = 10
+	end
+	if (length < 1) then
+		length = 1
+	end
+	if (type (alphaFirst) ~= 'boolean') then
+		alphaFirst = false
+	end
+
 	local s = {}
 	local allowed = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-	while (#s < (len or 10)) do
-		local random = math.random (1, string.len (allowed))
+	while (#s < length) do
+		local max = string.len (allowed)
+		if (#s == 0 and alphaFirst) then
+			max = max - 10
+		end
+		local random = math.random (1, max)
 		local char = string.sub (allowed, random, random)
 		table.insert (s, char)
 	end
