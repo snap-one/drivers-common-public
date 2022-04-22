@@ -1,9 +1,9 @@
--- Copyright 2021 Snap One, LLC. All rights reserved.
+-- Copyright 2022 Snap One, LLC. All rights reserved.
 
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 16
+COMMON_HANDLERS_VER = 17
 
 do -- define globals
 	DEBUG_RFN = false
@@ -686,7 +686,7 @@ function UIRequest (strCommand, tParams)
 	local success, ret
 
 	if (UIR and UIR [strCommand] and type (UIR [strCommand]) == 'function') then
-		success, ret = pcall (UIR [strCommand], strCommand, tParams)
+		success, ret = pcall (UIR [strCommand], tParams)
 	end
 
 	if (success == true) then
