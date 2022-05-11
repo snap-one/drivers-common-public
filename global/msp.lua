@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 97
+COMMON_MSP_VER = 98
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -188,6 +188,7 @@ function OnDriverLateInit ()
 	SUPPORTS_GAPLESS = VersionCheck ('2.10.0')
 	SUPPORTS_CUSTOM_DASH = VersionCheck ('3.0.0')
 	SUPPORTS_DEFAULT_AND_ACTIONS = VersionCheck ('3.0.0')
+	SUPPORTS_SEEK_ABSOLUTE = VersionCheck ('3.3.1')
 
 	USER_AGENT = 'Control4/' .. C4:GetVersionInfo ().version .. '/' .. C4:GetDriverConfigInfo ('model') .. '/' .. C4:GetDriverConfigInfo ('version')
 
@@ -455,6 +456,28 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 	elseif (nav == nil and strCommand == 'SKIP_REV') then
 		local roomId = tonumber (tParams.ROOMID) or tonumber (tParams.ROOM_ID)
 		return (SkipRev (roomId))
+
+	elseif (strCommand == 'SEEK') then
+		local roomId = tonumber (tParams.ROOMID) or tonumber (tParams.ROOM_ID)
+		local pos = tonumber (tParams.POSITION)
+		local seekType = tParams.TYPE
+		return (Seek (roomId, pos, seekType))
+
+	elseif (strCommand == 'SCAN_FWD') then
+		local roomId = tonumber (tParams.ROOMID) or tonumber (tParams.ROOM_ID)
+		local pos = 15
+		local seekType = 'relative'
+		return (Seek (roomId, pos, seekType))
+
+	elseif (strCommand == 'SCAN_REV') then
+		local roomId = tonumber (tParams.ROOMID) or tonumber (tParams.ROOM_ID)
+		local pos = -15
+		local seekType = 'relative'
+		return (Seek (roomId, pos, seekType))
+
+	elseif (string.find (strCommand, '^NUMBER_')) then
+		-- TODO
+		return '<ret><handled>true</handled></ret>'
 
 	elseif (strCommand == 'REPEAT_ON') then
 		local roomId = tonumber (tParams.ROOM_ID)
@@ -1051,6 +1074,85 @@ function Skip (roomId, increment)
 	end
 end
 
+function Seek (roomId, pos, seekType)
+	if (not (roomId and pos and seekType)) then
+		return
+	end
+
+	local qId = GetQueueIDByRoomID (roomId)
+
+	local thisQ = SongQs [qId]
+
+	if (not thisQ) then
+		print ('Cannot seek, no queue')
+		return
+	end
+
+	local elapsed = thisQ.CurrentTrackElapsed
+	local duration = thisQ.CurrentTrackDuration
+
+	if (not (elapsed and duration)) then
+		return
+	end
+
+	if (not (SUPPORTS_SEEK_ABSOLUTE)) then
+		if (seekType == 'absolute') then
+			pos = pos - elapsed
+			seekType = 'relative'
+		elseif (seekType == 'percent') then
+			local target = math.floor (duration * (pos / 100))
+			pos = target - elapsed
+			seekType = 'relative'
+		end
+	end
+
+	local target
+	if (seekType == 'absolute') then
+		target = pos
+	elseif (seekType == 'relative') then
+		target = elapsed + pos
+	elseif (seekType == 'percent') then
+		target = math.floor (duration * (pos / 100))
+	end
+
+	if (not target) then
+		print ('Cannot seek, could not calculate target position')
+		return
+	end
+
+	if (target < 0) then
+		print ('Cannot seek, target is before start of track')
+		return
+	end
+
+	if (target > duration) then
+		print ('Cannot seek, target is after end of track')
+		return
+	end
+
+	if (roomId and pos and seekType) then
+		local _args = {
+			ROOM_ID = roomId,
+			POSITION = pos * 1000, -- convert seconds to ms
+			TYPE = seekType,
+		}
+
+		C4:SendToDevice (C4_DIGITAL_AUDIO, 'SEEK', _args)
+
+		if (seekType == 'absolute') then
+			thisQ.CurrentTrackElapsed = pos
+		elseif (seekType == 'relative') then
+			thisQ.CurrentTrackElapsed = thisQ.CurrentTrackElapsed + pos
+		elseif (seekType == 'percent') then
+			thisQ.CurrentTrackElapsed = math.floor (thisQ.CurrentTrackDuration * (pos / 100))
+		end
+
+		UpdateProgress (qId)
+
+		return '<ret><handled>true</handled></ret>'
+	end
+end
+
 function RegisterRooms ()
 	RoomIDs = C4:GetDevicesByC4iName ('roomdevice.c4i')
 	RoomIDSources = {}
@@ -1416,6 +1518,7 @@ function UpdateProgress (qId)
 					length = 1,
 					offset = 1,
 					label = GetTimeString (thisQ.CurrentTrackElapsed),
+					canSeek = false,
 				}
 			else
 				local elapsed = GetTimeNumber (thisQ.CurrentTrackElapsed)
@@ -1429,6 +1532,7 @@ function UpdateProgress (qId)
 					length = GetTimeNumber (thisQ.CurrentTrackDuration),
 					offset = GetTimeNumber (thisQ.CurrentTrackElapsed),
 					label = elapsedString .. ' / -' .. remainingString,
+					canSeek = true,
 				}
 				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 			end
@@ -1437,6 +1541,7 @@ function UpdateProgress (qId)
 				length = 0,
 				offset = 0,
 				label = '',
+				canSeek = false,
 			}
 		end
 
