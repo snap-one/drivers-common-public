@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 98
+COMMON_MSP_VER = 99
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -160,6 +160,8 @@ function OnDriverLateInit ()
 	end
 
 	RegisterRooms ()
+
+	RECENTLY_PLAYED_AGENT = next (C4:GetDevicesByC4iName ('recentlyplayed-agent.c4z'))
 
 	PersistData = PersistData or {}
 	PersistData.AuthSettings = PersistData.AuthSettings or {}
@@ -499,6 +501,13 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 		local qId = GetQueueIDByRoomID (roomId)
 		QueueClearShuffle (qId)
 
+	elseif (strCommand == 'GET_CONTAINER_INFO') then
+		local keyToUpdate = tParams.keyToUpdate
+		local containerId = tParams.containerId
+		local containerType = tParams.containerType
+		local rooms = tParams.rooms
+		GetContainerInfo (containerId, containerType, keyToUpdate, rooms)
+
 	elseif (not (navId) and RFP) then
 		strCommand = string.gsub (strCommand, '%s+', '_')
 		if (RFP [strCommand]) then
@@ -613,7 +622,7 @@ function NetworkError (strError)
 end
 
 -- Queue functions
-function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips)
+function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips, containerInfo)
 	if (CheckRoomHasDigitalAudio (roomId) == false) then
 		dbg ('Tried to create digital audio queue in room with no Digital Audio:', roomId)
 		--return
@@ -744,6 +753,43 @@ function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips)
 
 		MetricsMSP:SetCounter ('NewQueueAttempt')
 		MetricsMSP:SetGauge ('QueueCount', GetTableSize (SongQs))
+	end
+
+	if (containerInfo) then
+		local thisQ = SongQs [qId]
+		if (thisQ) then
+			if (RECENTLY_PLAYED_AGENT) then
+				local key
+				if (thisQ.RecentlyPlayedKey) then
+					key = thisQ.RecentlyPlayedKey
+				end
+				local rooms = GetRoomMapByQueueID (qId)
+				if (#rooms == 0) then
+					rooms = roomId
+				else
+					rooms = table.concat (rooms, ',')
+				end
+				local itemInfo = {
+					keyToUpdate = nil,
+					driverId = PROXY_ID,
+					info = {
+						container = {
+							id = containerInfo.id,
+							itemType = containerInfo.itemType,
+							title = containerInfo.title,
+							subtitle = containerInfo.subtitle,
+							image = containerInfo.image,
+						},
+						driverId = PROXY_ID,
+					},
+					rooms = rooms,
+				}
+				key = C4:SendToDevice (RECENTLY_PLAYED_AGENT, 'SetHistoryItem', {itemInfo = Serialize (itemInfo)})
+				if (key) then
+					thisQ.RecentlyPlayedKey = key
+				end
+			end
+		end
 	end
 
 	if (playNow) then
@@ -1416,6 +1462,28 @@ function UpdateMediaInfo (qId)
 			QUEUEID = qId,
 			}
 		C4:SendToProxy (MSP_PROXY, 'UPDATE_MEDIA_INFO', args, 'COMMAND', true)
+
+		if (thisQ.RecentlyPlayedKey and RECENTLY_PLAYED_AGENT) then
+			local rooms = GetRoomMapByQueueID (qId)
+			rooms = table.concat (rooms, ',')
+
+			local itemInfo = {
+				keyToUpdate = thisQ.RecentlyPlayedKey,
+				driverId = PROXY_ID,
+				info = {
+					track = {
+						id = thisTrack.id,
+						title = thisTrack.title,
+						subtitle = thisTrack.artist,
+						image = thisTrack.image,
+					},
+					driverId = PROXY_ID,
+				},
+				rooms = rooms,
+			}
+
+			C4:SendToDevice (RECENTLY_PLAYED_AGENT, 'SetHistoryItem', {itemInfo = Serialize (itemInfo)})
+		end
 	end
 end
 
@@ -1532,7 +1600,7 @@ function UpdateProgress (qId)
 					length = GetTimeNumber (thisQ.CurrentTrackDuration),
 					offset = GetTimeNumber (thisQ.CurrentTrackElapsed),
 					label = elapsedString .. ' / -' .. remainingString,
-					canSeek = true,
+					canSeek = SUPPORTS_SEEK_ABSOLUTE,
 				}
 				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 			end
