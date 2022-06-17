@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 99
+COMMON_MSP_VER = 100
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1463,6 +1463,7 @@ function UpdateMediaInfo (qId)
 			}
 		C4:SendToProxy (MSP_PROXY, 'UPDATE_MEDIA_INFO', args, 'COMMAND', true)
 
+		--[[
 		if (thisQ.RecentlyPlayedKey and RECENTLY_PLAYED_AGENT) then
 			local rooms = GetRoomMapByQueueID (qId)
 			rooms = table.concat (rooms, ',')
@@ -1484,6 +1485,7 @@ function UpdateMediaInfo (qId)
 
 			C4:SendToDevice (RECENTLY_PLAYED_AGENT, 'SetHistoryItem', {itemInfo = Serialize (itemInfo)})
 		end
+		--]]
 	end
 end
 
