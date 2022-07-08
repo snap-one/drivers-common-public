@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 33
+COMMON_LIB_VER = 34
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -576,9 +576,16 @@ function GetFileName (deviceId)
 
 	local info = C4:GetDevices ({DeviceIds = tostring (deviceId)})
 
-	if (info and info [deviceId]) then
-		local driverFileName = info [deviceId].driverFileName
-		return driverFileName
+	local protocol = Select (info, deviceId, 'protocol')
+
+	if (protocol) then
+		info = protocol
+	end
+
+	local _, data = next (info)
+
+	if (data.driverFileName) then
+		return data.driverFileName
 	end
 end
 
