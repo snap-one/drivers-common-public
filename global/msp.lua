@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 100
+COMMON_MSP_VER = 101
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2083,6 +2083,14 @@ function SelectDefaultItemInRoom (roomId)
 end
 
 function SelectMediaDBItemInRoom (itemId, roomId)
+end
+
+function GetContainerInfo (containerId, containerType, keyToUpdate, rooms)
+	if (not (containerId and containerType and keyToUpdate)) then
+		return
+	end
+
+	print ('GetContainerInfo: Unexpected: ', containerId, containerType)
 end
 
 -----------------
