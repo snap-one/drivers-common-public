@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 101
+COMMON_MSP_VER = 102
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -160,8 +160,6 @@ function OnDriverLateInit ()
 	end
 
 	RegisterRooms ()
-
-	RECENTLY_PLAYED_AGENT = next (C4:GetDevicesByC4iName ('recentlyplayed-agent.c4z'))
 
 	PersistData = PersistData or {}
 	PersistData.AuthSettings = PersistData.AuthSettings or {}
@@ -1200,6 +1198,8 @@ function Seek (roomId, pos, seekType)
 end
 
 function RegisterRooms ()
+	RECENTLY_PLAYED_AGENT = next (C4:GetDevicesByC4iName ('recentlyplayed-agent.c4z'))
+
 	RoomIDs = C4:GetDevicesByC4iName ('roomdevice.c4i')
 	RoomIDSources = {}
 	RoomIDPlayingSources = {}
