@@ -157,7 +157,7 @@ function dbg (strDebugText, ...)
 			t = os.time ()
 			ms = ''
 		end
-		local s = os.date ('%x %X') .. ms .. ' : '
+		local s = string.format("%-21s : ", os.date ('%x %X') .. ms)
 
 		print (s .. (strDebugText or ''), ...)
 		C4:DebugLog (strDebugText)
