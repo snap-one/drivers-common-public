@@ -245,7 +245,8 @@ function HandlerDebug (init, tParams, args)
 	end
 	local s = string.format("%-21s : ", os.date ('%x %X') .. ms)
 
-	table.insert (output, 1, s .. '  -->')
+	table.insert (output, 1, s)
+	table.insert (output, 1, '-->')
 	table.insert (output, '<--')
 	output = table.concat (output, '\r\n')
 	print (output)
