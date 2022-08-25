@@ -216,19 +216,20 @@ function HandlerDebug (init, tParams, args)
 	end
 
 	local output = init
+	for k,v in pairs(output) do output[k] = "  " .. v end
 
 	if (type (tParams) == 'table' and next (tParams) ~= nil) then
-		table.insert (output, '----PARAMS----')
+		table.insert (output, '        ----PARAMS----')
 		for k, v in pairs (tParams) do
-			local line = tostring (k) .. ' = ' .. tostring (v)
+			local line = string.format("  %-20s = %s", tostring(k), tostring(v) )
 			table.insert (output, line)
 		end
 	end
 
 	if (type (args) == 'table' and next (args) ~= nil) then
-		table.insert (output, '----ARGS----')
+		table.insert (output, '        ----ARGS----')
 		for k, v in pairs (args) do
-			local line = tostring (k) .. ' = ' .. tostring (v)
+			local line = string.format("  %-20s = %s", tostring(k), tostring(v) )
 			table.insert (output, line)
 		end
 	end
@@ -242,9 +243,10 @@ function HandlerDebug (init, tParams, args)
 		t = os.time ()
 		ms = ''
 	end
-	local s = os.date ('%x %X') .. ms
+	local s = string.format("%-21s : ", os.date ('%x %X') .. ms)
 
-	table.insert (output, 1, '-->  ' .. s)
+	table.insert (output, 1, s)
+	table.insert (output, 1, '-->')
 	table.insert (output, '<--')
 	output = table.concat (output, '\r\n')
 	print (output)
