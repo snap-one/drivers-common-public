@@ -1,6 +1,6 @@
 -- Copyright 2022 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 24
+AUTH_CODE_GRANT_VER = 25
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -373,7 +373,13 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 				self:RefreshToken ()
 			end
 
-			self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, self.EXPIRES_IN * 950, _timer)
+			local delay = self.EXPIRES_IN * 950
+			if (delay > ((2^31) - 1)) then
+				delay = (2^31) - 1
+				self.metrics:SetCounter ('ShortenedExpiryTime')
+			end
+
+			self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, delay, _timer)
 		end
 
 		print ((self.NAME or 'OAuth') .. ': Access Token received, accessToken:' .. tostring (self.ACCESS_TOKEN ~= nil) .. ', refreshToken:' .. tostring (self.REFRESH_TOKEN ~= nil))
