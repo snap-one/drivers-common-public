@@ -1,6 +1,6 @@
--- Copyright 2022 Snap One, LLC. All rights reserved.
+-- Copyright 2023 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 25
+AUTH_CODE_GRANT_VER = 26
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -373,7 +373,8 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 				self:RefreshToken ()
 			end
 
-			local delay = self.EXPIRES_IN * 950
+			-- smear out refreshing the token to avoid all tokens across entire system being refreshed at the same time
+			local delay = self.EXPIRES_IN * math.random (750, 950)
 			if (delay > ((2^31) - 1)) then
 				delay = (2^31) - 1
 				self.metrics:SetCounter ('ShortenedExpiryTime')
