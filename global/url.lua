@@ -1,6 +1,6 @@
--- Copyright 2021 Snap One, LLC. All rights reserved.
+-- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 23
+COMMON_URL_VER = 24
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -344,7 +344,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	if (success == true) then
 		return (ret)
 	elseif (success == false) then
-		MetricsHandler:SetCounter ('Error_Callback')
+		MetricsURL:SetCounter ('Error_Callback')
 		print ('URL response callback error: ', ret, info.URL)
 	end
 end
