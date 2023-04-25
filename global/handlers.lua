@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 18
+COMMON_HANDLERS_VER = 19
 
 do -- define globals
 	DEBUG_RFN = false
@@ -412,16 +412,16 @@ function UpdateProperty (strProperty, strValue, notifyChange)
 		return
 	end
 
-	if (type (strValue) ~= 'string') then
-		MetricsHandler:SetCounter ('Error_UpdateProperty')
-		print ('UpdateProperty error (strValue not string): ', tostring(strProperty), tostring(strValue))
-		return
-	end
-
 	if (Properties [strProperty] == nil) then
 		MetricsHandler:SetCounter ('Error_UpdateProperty')
 		print ('UpdateProperty error (Property not present in Properties table): ', tostring(strProperty), tostring(strValue))
 		return
+	end
+
+	if (strValue == nil) then
+		strValue = ''
+	elseif (type (strValue) ~= 'string') then
+		strValue = tostring (strValue)
 	end
 
 	if (Properties [strProperty] ~= strValue) then
@@ -551,7 +551,9 @@ function SetVariable (strVariable, strValue, notifyChange)
 
 	strValue = conformVariable (strValue)
 
-	C4:SetVariable (strVariable, strValue)
+	if (Variables [strVariable] ~= strValue) then
+		C4:SetVariable (strVariable, strValue)
+	end
 	if (notifyChange == true) then
 		OnVariableChanged (strVariable)
 	end
