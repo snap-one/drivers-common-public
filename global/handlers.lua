@@ -1,16 +1,16 @@
--- Copyright 2022 Snap One, LLC. All rights reserved.
+-- Copyright 2023 Snap One, LLC. All rights reserved.
 
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 17
+COMMON_HANDLERS_VER = 18
 
 do -- define globals
 	DEBUG_RFN = false
 end
 
---[[
-	Inbound Driver Functions:
+--[[ Inbound Driver Functions:
+
 		-- ExecuteCommand (strCommand, tParams)
 		FinishedWithNotificationAttachment ()
 		GetNotificationAttachmentURL ()
@@ -66,8 +66,7 @@ end
 
 ]]
 
---[[
-	C4 System Events (from C4SystemEvents global) - valid values for OSE keys
+--[[ C4 System Events (from C4SystemEvents global) - valid values for OSE keys
 	1	OnAll
 	2	OnAlive
 	3	OnProjectChanged
@@ -200,6 +199,23 @@ do	--Globals
 	RFP = RFP or {}
 	TC = TC or {}
 	UIR = UIR or {}
+
+	ValidVarTypes = {
+		BOOL = true,
+		DEVICE = true,
+		FLOAT = true,
+		INT = true,
+		MEDIA = true,
+		NUMBER = true,
+		ROOM = true,
+		STRING = true,
+		STATE = true,
+		TIME = true,
+		ULONG = true,
+		XML = true,
+		LEVEL = true,
+		LIST = true,
+	}
 end
 
 do	--Setup Metrics
@@ -470,12 +486,70 @@ function OnSystemEvent (event)
 	end
 end
 
-function SetVariable (strVariable, strValue, notifyChange)
-	if (strVariable == nil or strValue == nil) then
-		MetricsHandler:SetCounter ('Error_SetVariable')
-		print ('SetVariable error (Invalid strVariable / strValue): ', tostring(strVariable), tostring(strValue))
+function conformVariable (var)
+	local ret
+	if (type (var) == 'boolean') then
+		ret = (var and '1') or '0'
+	end
+	if (type (var) ~= 'string') then
+		ret = tostring (var)
+	else
+		ret = var
+	end
+	return ret
+end
+
+function AddVariable (strVariable, strValue, varType, readOnly, hidden)
+	if (type (strVariable) ~= 'string') then
+		MetricsHandler:SetCounter ('Error_AddVariable')
+		print ('AddVariable error (Invalid strVariable): ', tostring (strVariable), type (strVariable))
 		return
 	end
+
+	if (type (varType) ~= 'string') then
+		MetricsHandler:SetCounter ('Error_AddVariable')
+		print ('AddVariable error (varType not string): ', tostring (varType), type (varType))
+		return
+	end
+
+	if (not (ValidVarTypes [varType])) then
+		MetricsHandler:SetCounter ('Error_AddVariable')
+		print ('AddVariable error (Invalid varType): ', tostring (varType))
+		return
+	end
+
+	if (Variables [strVariable]) then
+		SetVariable (strVariable, strValue)
+		return
+	end
+
+	strValue = conformVariable (strValue)
+
+	if (readOnly ~= true) then
+		readOnly = false
+	end
+
+	if (hidden ~= true) then
+		hidden = false
+	end
+
+	C4:AddVariable (strVariable, strValue, varType, readOnly, hidden)
+end
+
+function SetVariable (strVariable, strValue, notifyChange)
+	if (type (strVariable) ~= 'string') then
+		MetricsHandler:SetCounter ('Error_SetVariable')
+		print ('AddVariable error (Invalid strVariable): ', tostring (strVariable), type (strVariable))
+		return
+	end
+
+	if (strValue == nil) then
+		MetricsHandler:SetCounter ('Error_SetVariable')
+		print ('SetVariable error (Invalid strValue): nil')
+		return
+	end
+
+	strValue = conformVariable (strValue)
 
 	C4:SetVariable (strVariable, strValue)
 	if (notifyChange == true) then
@@ -483,14 +557,14 @@ function SetVariable (strVariable, strValue, notifyChange)
 	end
 end
 
-function OnVariableChanged (strVariable)
+function OnVariableChanged (strVariable, variableId)
 	local value = Variables [strVariable]
 	if (value == nil) then
 		value = ''
 	end
 
 	local init = {
-		'OnVariableChanged: ' .. strVariable,
+		'OnVariableChanged: ' .. strVariable .. ' [' .. tostring (variableId) .. ']',
 		value,
 	}
 	HandlerDebug (init)
@@ -501,6 +575,8 @@ function OnVariableChanged (strVariable)
 
 	if (OVC and OVC [strVariable] and type (OVC [strVariable]) == 'function') then
 		success, ret = pcall (OVC [strVariable], value)
+	elseif (OVC and OVC [variableId] and type (OVC [variableId]) == 'function') then
+		success, ret = pcall (OVC [variableId], value)
 	end
 
 	if (success == true) then
