@@ -656,7 +656,7 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue)
 end
 
 function ReceivedFromNetwork (idBinding, nPort, strData)
-	local suppressRFN
+	local suppressRFN = not (DEBUG_RFN)
 
 	if (WebSocket) then
 		if (WebSocket.Sockets and WebSocket.Sockets [idBinding]) then
