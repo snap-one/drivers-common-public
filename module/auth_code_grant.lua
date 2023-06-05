@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 26
+AUTH_CODE_GRANT_VER = 27
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -32,6 +32,8 @@ function oauth:new (tParams, providedRefreshToken)
 		SCOPES = tParams.SCOPES,
 
 		TOKEN_HEADERS = tParams.TOKEN_HEADERS,
+
+		USE_PKCE = tParams.USE_PKCE,
 
 		notifyHandler = {},
 		Timer = {},
@@ -171,6 +173,17 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 		scope = scope,
 	}
 
+	if (self.USE_PKCE) then
+		self.code_verifier = GetRandomString (128)
+
+		local code_challenge = C4:Hash ('SHA256', self.code_verifier, SHA_ENC_DEFAULTS)
+		local code_challenge_b64 = C4:Base64Encode (code_challenge)
+		local code_challenge_b64_url = code_challenge_b64:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+
+		args.code_challenge = code_challenge_b64_url
+		args.code_challenge_method = 'S256'
+	end
+
 	if (extras and type (extras) == 'table') then
 		for k, v in pairs (extras) do
 			args [k] = v
@@ -275,6 +288,10 @@ function oauth:GetUserToken (code, contextInfo)
 			code = code,
 			redirect_uri = self.REDIRECT_URI .. 'callback',
 		}
+
+		if (self.USE_PKCE) then
+			args.code_verifier = self.code_verifier
+		end
 
 		local url = self.TOKEN_ENDPOINT_URI
 
