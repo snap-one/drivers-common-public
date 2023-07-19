@@ -1,6 +1,6 @@
--- Copyright 2022 Snap One, LLC. All rights reserved.
+-- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 102
+COMMON_MSP_VER = 103
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -25,6 +25,8 @@ do	--Globals
 	RoomSettings = RoomSettings or {}
 
 	Navigator = Navigator or {}
+
+	-- NavigatorSerializedArgs = {}
 
 	MAX_SEARCH = 20
 
@@ -529,6 +531,14 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 
 		nav.roomId = tonumber (tParams.ROOMID)
 		local seq = tParams.SEQ
+
+		if (NavigatorSerializedArgs) then
+			for arg, serialized in pairs (NavigatorSerializedArgs) do
+				if (args [arg] and serialized) then
+					args [arg] = Deserialize (args [arg])
+				end
+			end
+		end
 
 		local success, ret = pcall (cmd, nav, idBinding, seq, args)
 
@@ -1432,6 +1442,15 @@ function MakeList (response, collection, options)
 				end
 			end
 		end
+
+		if (NavigatorSerializedArgs) then
+			for arg, serialized in pairs (NavigatorSerializedArgs) do
+				if (item [arg] and serialized) then
+					item [arg] = Serialize (item [arg])
+				end
+			end
+		end
+
 		table.insert (list, XMLTag ('item', item))
 	end
 
