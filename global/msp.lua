@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 103
+COMMON_MSP_VER = 104
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1544,12 +1544,20 @@ function UpdateQueue (qId, options)
 
 		local list = {}
 		for i = start, finish do
-			local item = thisQ.Q [i]
+			local item = CopyTable (thisQ.Q [i])
 
 			if (SUPPORTS_DEFAULT_AND_ACTIONS) then
 				if (item.default_action == nil) then
 					if (string.find (item.actions_list or '', '^QueueSelect')) then
 						item.default_action = 'QueueSelect'
+					end
+				end
+			end
+
+			if (NavigatorSerializedArgs) then
+				for arg, serialized in pairs (NavigatorSerializedArgs) do
+					if (item [arg] and serialized) then
+						item [arg] = Serialize (item [arg])
 					end
 				end
 			end
