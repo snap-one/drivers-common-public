@@ -1,6 +1,6 @@
--- Copyright 2022 Snap One, LLC. All rights reserved.
+-- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 7
+COMMON_WEBSOCKET_VER = 8
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -60,6 +60,7 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 			resource = resource,
 			buf = '',
 			ping_interval = 30,
+			pong_response_interval = 10,
 			additionalHeaders = additionalHeaders or {},
 			wssOptions = wssOptions,
 		}
@@ -393,6 +394,7 @@ function WebSocket:parseWSPacket ()
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PONG')
 			end
+			self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
 
 		elseif (opcode == 0x00) then -- continuation frame
 			if (not self.fragment) then
@@ -471,7 +473,15 @@ function WebSocket:Ping ()
 		if (DEBUG_WEBSOCKET) then
 			print ('TX PING')
 		end
-	self:sendToNetwork (pkt)
+
+		local _timer = function (timer)
+			self.metrics:SetCounter ('MissingPong')
+			print ('WS ' .. self.url .. ' appears disconnected - timed out waiting for PONG')
+			self:Close ()
+		end
+		self.PongResponseTimer = SetTimer (self.PongResponseTimer, self.pong_response_interval * ONE_SECOND, _timer)
+
+		self:sendToNetwork (pkt)
 	end
 end
 
