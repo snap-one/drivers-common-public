@@ -22,5 +22,6 @@ Lua files in the `module` directory create an object that can only be accessed b
 - `auth_code_grant.lua` : Setup an OAuth 2 connection using the Authorization Code Grant flow.  Requires an API key to use : contact your Control4 representative for more details.
 - `auth_device_PIN.lua` : Setup an OAuth 2 connection using the PIN Grant flow.  Requires an API key to use : contact your Control4 representative for more details.
 - `json.lua` : Pure Lua implementation of a JSON parser for encode/decode.  Copyright 2010-2017 Jeffrey Friedl, see LICENSE.md for details.
+- `pcall.lua` : Overriding lua pcall function to allow catching errors inside pcall protected functions and sending them to the datalake 
 - `ssdp.lua` : Implements SSDP discovery in pure Driverworks.  Does not register a listening server.
 - `websocket.lua` : Implements a websocket client in pure Driverworks.
