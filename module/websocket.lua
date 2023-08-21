@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 8
+COMMON_WEBSOCKET_VER = 9
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -497,7 +497,10 @@ end
 
 function WebSocket:ConnectionChanged (strStatus)
 	self.connected = (strStatus == 'ONLINE')
-	if (self.PingTimer) then self.PingTimer = self.PingTimer:Cancel () end
+
+	self.PingTimer = CancelTimer (self.PingTimer)
+	self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
+
 	if (self.connected) then
 		local pkt = self:MakeHeaders ()
 		self:sendToNetwork (pkt)
