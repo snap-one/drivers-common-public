@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 9
+COMMON_WEBSOCKET_VER = 10
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
