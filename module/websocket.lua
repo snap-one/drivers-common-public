@@ -454,7 +454,7 @@ function WebSocket:parseHTTPPacket ()
 		local hash = C4:Hash ('sha1', check, {['return_encoding'] = 'BASE64'})
 
 		if (headers ['SEC-WEBSOCKET-ACCEPT'] == hash and
-			headers ['UPGRADE'] == 'websocket' and
+			string.lower (headers ['UPGRADE']) == 'websocket' and
 			string.lower (headers ['CONNECTION']) == 'upgrade') then
 
 			self.running = true
