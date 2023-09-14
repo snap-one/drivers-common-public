@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 10
+COMMON_WEBSOCKET_VER = 11
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -456,6 +456,8 @@ function WebSocket:parseHTTPPacket ()
 		if (headers ['SEC-WEBSOCKET-ACCEPT'] == hash and
 			string.lower (headers ['UPGRADE']) == 'websocket' and
 			string.lower (headers ['CONNECTION']) == 'upgrade') then
+
+			print ('WS ' .. self.url .. ' running')
 
 			self.running = true
 			self.metrics:SetCounter ('Running')
