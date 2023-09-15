@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 104
+COMMON_MSP_VER = 105
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -113,7 +113,14 @@ function OnDriverInit ()
 end
 
 function OnDriverLateInit ()
-	if (not C4.GetDriverConfigInfo or not (VersionCheck (C4:GetDriverConfigInfo ('minimum_os_version')))) then
+	local minimumVersion
+	if (C4.GetDriverConfigInfo) then
+		minimumVersion = C4:GetDriverConfigInfo ('minimum_os_version')
+		if (minimumVersion == '') then
+			minimumVersion = nil
+		end
+	end
+	if (minimumVersion and not (VersionCheck (minimumVersion))) then
 		local errtext = {
 			'DRIVER DISABLED - ',
 			C4:GetDriverConfigInfo ('model'),
