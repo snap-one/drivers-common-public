@@ -1,6 +1,6 @@
--- Copyright 2022 Snap One, LLC. All rights reserved.
+-- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 34
+COMMON_LIB_VER = 35
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -541,6 +541,50 @@ function XMLCapture (xmlString, tag)
 	if (attributes) then
 		return '', attributes
 	end
+end
+
+function ConstructJWT (payload, secret, alg)
+	if (type (payload) ~= 'table') then
+		print ('ConstructJWT payload must be a table')
+	end
+
+	local token
+
+	local allowedAlgs = {
+		['HS256'] = 'SHA256',
+		['HS384'] = 'SHA384',
+		['HS512'] = 'SHA512',
+	}
+
+	if (alg == nil or not allowedAlgs [alg]) then
+		alg = 'HS256'
+	end
+
+	local header = {
+		alg = alg,
+		typ = 'JWT',
+	}
+
+	local data = Serialize (header) .. '.' .. Serialize (payload)
+	data = data:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+
+	local digest = allowedAlgs [alg]
+
+	local signature
+
+	if (string.sub (alg, 1, 2) == 'HS') then
+		local options = {
+			return_encoding = 'BASE64',
+			key_encoding = 'NONE',
+			data_encoding = 'NONE',
+		}
+		signature = C4:HMAC (digest, secret, data, options)
+		signature = signature:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+	end
+
+	data = data .. '.' .. signature
+
+	return (data)
 end
 
 function RefreshNavs ()
