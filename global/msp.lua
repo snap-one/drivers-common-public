@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 105
+COMMON_MSP_VER = 106
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2338,8 +2338,8 @@ function Navigator:CancelAuthenticationInformation (idBinding, seq, args)
 		end
 	end
 
-	CancelTimer (APIAuth.Timer.CheckState)
-	CancelTimer (APIAuth.Timer.GetCodeStatusExpired)
+	APIAuth.Timer.CheckState = CancelTimer (APIAuth.Timer.CheckState)
+	APIAuth.Timer.GetCodeStatusExpired = CancelTimer (APIAuth.Timer.GetCodeStatusExpired)
 
 	UpdateAPIAuthLink ('')
 
