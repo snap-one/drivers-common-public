@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 27
+AUTH_CODE_GRANT_VER = 28
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -324,6 +324,11 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 		return false
 	end
 
+	if (self.Timer.RefreshingToken) then
+		self.metrics:SetCounter ('CollisionAvoided')
+		return
+	end
+
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -352,16 +357,28 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 		end
 	end
 
+	local _timer = function (timer)
+		self.metrics:SetCounter ('CollisionAvoidanceTimerExpired')
+		self.Timer.RefreshingToken = self.Timer.RefreshingToken:Cancel ()
+		self:RefreshToken ()
+	end
+	self.Timer.RefreshingToken = SetTimer (self.Timer.RefreshingToken, 30 * ONE_SECOND, _timer)
+
+
 	self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
 end
 
 function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
+	if (self.Timer.RefreshingToken) then
+		self.Timer.RefreshingToken = self.Timer.RefreshingToken:Cancel ()
+	end
+
 	if (strError) then
 		dbg ('Error with GetToken:', strError)
 		local _timer = function (timer)
 			self:RefreshToken ()
 		end
-		self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, 30 * 1000, _timer)
+		self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, 30 * ONE_SECOND, _timer)
 		return
 	end
 
