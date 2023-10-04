@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 28
+AUTH_CODE_GRANT_VER = 29
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -226,10 +226,12 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 		CancelTimer (self.Timer.CheckState)
 		CancelTimer (self.Timer.GetCodeStatusExpired)
 
-		self:GetUserToken (data.code, contextInfo)
-
 		self.metrics:SetCounter ('LinkCodeConfirmed')
-		self:notify ('LinkCodeConfirmed', contextInfo)
+		self:notify ('LinkCodeConfirmed', contextInfo, data.code)
+
+		if (self.TOKEN_ENDPOINT_URI) then
+			self:GetUserToken (data.code, contextInfo)
+		end
 
 	elseif (responseCode == 204) then
 		self:notify ('LinkCodeWaiting', contextInfo)
