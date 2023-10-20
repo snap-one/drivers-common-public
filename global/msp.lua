@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 106
+COMMON_MSP_VER = 107
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -198,8 +198,6 @@ function OnDriverLateInit ()
 	SUPPORTS_CUSTOM_DASH = VersionCheck ('3.0.0')
 	SUPPORTS_DEFAULT_AND_ACTIONS = VersionCheck ('3.0.0')
 	SUPPORTS_SEEK_ABSOLUTE = VersionCheck ('3.3.1')
-
-	USER_AGENT = 'Control4/' .. C4:GetVersionInfo ().version .. '/' .. C4:GetDriverConfigInfo ('model') .. '/' .. C4:GetDriverConfigInfo ('version')
 
 	HomeTabId = 'Library'
 	HomeScreenId = 'LibraryScreen'
