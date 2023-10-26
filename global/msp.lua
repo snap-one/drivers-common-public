@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 107
+COMMON_MSP_VER = 108
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1358,7 +1358,7 @@ function GetMasterRoom (deviceId)
 	return nil, {}
 end
 
-function JoinRoomToSession (roomId, qId)
+function JoinRoomToSession (roomId, qId, extras)
 	if (CheckRoomHasDigitalAudio (roomId) == false) then
 		dbg ('Tried to join digital audio session with room with no Digital Audio:', roomId)
 		--return
@@ -1377,10 +1377,11 @@ function JoinRoomToSession (roomId, qId)
 	local _, roomQueue = GetQueueIDByRoomID (roomId)
 
 	if (sessionQueue.ownerId) then
-		if (sessionQueue~= roomQueue) then
+		if (sessionQueue ~= roomQueue) then
+			local roomList = roomId .. ((extras and #extras > 0 and (',' .. extras)) or '')
 			local args = {
 				ROOM_ID = sessionQueue.ownerId,
-				ROOM_ID_LIST = roomId,
+				ROOM_ID_LIST = roomList,
 			}
 			C4:SendToDevice (C4_DIGITAL_AUDIO, 'ADD_ROOMS_TO_SESSION', args)
 		end
