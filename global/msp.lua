@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 108
+COMMON_MSP_VER = 109
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1378,10 +1378,18 @@ function JoinRoomToSession (roomId, qId, extras)
 
 	if (sessionQueue.ownerId) then
 		if (sessionQueue ~= roomQueue) then
-			local roomList = roomId .. ((extras and #extras > 0 and (',' .. extras)) or '')
+			local roomList = roomId
 			local args = {
 				ROOM_ID = sessionQueue.ownerId,
 				ROOM_ID_LIST = roomList,
+			}
+			C4:SendToDevice (C4_DIGITAL_AUDIO, 'ADD_ROOMS_TO_SESSION', args)
+		end
+		if (extras and #extras > 0) then
+			local roomList = roomId
+			local args = {
+				ROOM_ID = sessionQueue.ownerId,
+				ROOM_ID_LIST = extras,
 			}
 			C4:SendToDevice (C4_DIGITAL_AUDIO, 'ADD_ROOMS_TO_SESSION', args)
 		end
