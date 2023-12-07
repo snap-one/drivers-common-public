@@ -1,6 +1,6 @@
 -- Copyright 2023 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 29
+AUTH_CODE_GRANT_VER = 30
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -34,6 +34,9 @@ function oauth:new (tParams, providedRefreshToken)
 		TOKEN_HEADERS = tParams.TOKEN_HEADERS,
 
 		USE_PKCE = tParams.USE_PKCE,
+
+		MAX_EXPIRES_IN = tParams.MAX_EXPIRES_IN or 86400,			-- one day
+		DEFAULT_EXPIRES_IN = tParams.DEFAULT_EXPIRES_IN or 3600,	-- one hour
 
 		notifyHandler = {},
 		Timer = {},
@@ -402,19 +405,20 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self.SCOPE = data.scope or self.SCOPE
 
-		self.EXPIRES_IN = data.expires_in
+		self.EXPIRES_IN = data.expires_in or self.EXPIRES_IN or self.DEFAULT_EXPIRES_IN
 
 		if (self.EXPIRES_IN and self.REFRESH_TOKEN) then
 			local _timer = function (timer)
 				self:RefreshToken ()
 			end
+			if (self.EXPIRES_IN > self.MAX_EXPIRES_IN) then
+				self.metrics:SetCounter ('ShortenedExpiryTime')
+				self.EXPIRES_IN_ORIGINAL = self.EXPIRES_IN
+				self.EXPIRES_IN = self.MAX_EXPIRES_IN
+			end
 
 			-- smear out refreshing the token to avoid all tokens across entire system being refreshed at the same time
 			local delay = self.EXPIRES_IN * math.random (750, 950)
-			if (delay > ((2^31) - 1)) then
-				delay = (2^31) - 1
-				self.metrics:SetCounter ('ShortenedExpiryTime')
-			end
 
 			self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, delay, _timer)
 		end
