@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 109
+COMMON_MSP_VER = 110
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -157,8 +157,14 @@ function OnDriverLateInit ()
 			elseif (var.varType == 'NUMBER') then default = 0
 			end
 		end
-		local readOnly = (var.readOnly ~= nil and var.readOnly) or true
-		local hidden = (var.hidden ~= nil and var.hidden) or false
+		local readOnly = true
+		if (type (var.readOnly) == 'boolean') then
+			readOnly = var.readOnly
+		end
+		local hidden = false
+		if (type (var.hidden) == 'boolean') then
+			hidden = var.hidden
+		end
 		C4:AddVariable (var.name, default, var.varType, readOnly, hidden)
 	end
 
