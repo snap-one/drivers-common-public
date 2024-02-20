@@ -1,9 +1,9 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 19
+COMMON_HANDLERS_VER = 20
 
 do -- define globals
 	DEBUG_RFN = false
@@ -490,8 +490,7 @@ function conformVariable (var)
 	local ret
 	if (type (var) == 'boolean') then
 		ret = (var and '1') or '0'
-	end
-	if (type (var) ~= 'string') then
+	elseif (type (var) ~= 'string') then
 		ret = tostring (var)
 	else
 		ret = var
@@ -518,12 +517,12 @@ function AddVariable (strVariable, strValue, varType, readOnly, hidden)
 		return
 	end
 
+	strValue = conformVariable (strValue)
+
 	if (Variables [strVariable]) then
 		SetVariable (strVariable, strValue)
 		return
 	end
-
-	strValue = conformVariable (strValue)
 
 	if (readOnly ~= true) then
 		readOnly = false
