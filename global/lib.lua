@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 35
+COMMON_LIB_VER = 36
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -409,7 +409,7 @@ function XMLEncode (s)
 	return s
 end
 
-function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs)
+function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, arrayTag)
 	local retXML = {}
 
 	local addTag = function (tagName, closeTag)
@@ -462,7 +462,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs)
 		end
 		if (arraySize == tableSize) then
 			for _, subItem in ipairs (tParams) do
-				table.insert (retXML, XMLTag (nil, subItem, tagSubTables, xmlEncodeElements))
+				table.insert (retXML, XMLTag (arrayTag, subItem, tagSubTables, xmlEncodeElements))
 			end
 
 		else
