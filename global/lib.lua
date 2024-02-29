@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 36
+COMMON_LIB_VER = 37
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -503,6 +503,70 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 	addTag (strName,true)
 
 	return (table.concat (retXML))
+end
+
+--Create XML from Lua table formatted like the result of C4:ParseXml
+function CreateXML (item, xml)
+	if (type (item) ~= 'table') then
+		print ('Cannot CreateXML on non-table')
+		return
+	end
+
+	local isRoot
+	if (type (xml) ~= 'table') then
+		isRoot = true
+		xml = {}
+	end
+
+	if (type (item.Name) == 'string') then
+		item.Name = string.match (item.Name, '^(%S+)')
+	end
+	local hasTag = (type (item.Name) == 'string' and #item.Name > 0)
+	local hasAttributes = (type (item.Attributes) == 'table' and next (item.Attributes) ~= nil)
+	local hasChildren = (type (item.ChildNodes) == 'table' and next (item.ChildNodes) ~= nil)
+	local hasValue = (type (item.Value) ~= 'nil' and (type (item.Value) ~= 'table'))
+	local isEmptyElement = not (hasChildren or hasValue)
+
+	if (hasTag) then
+		table.insert (xml, '<')
+		table.insert (xml, item.Name)
+		if (hasAttributes) then
+			table.insert (xml, ' ')
+			for k, v in pairs (item.Attributes) do
+				table.insert (xml, tostring (k))
+				table.insert (xml, '=')
+				table.insert (xml, '"')
+				table.insert (xml, XMLEncode (tostring (v)))
+				table.insert (xml, '"')
+				table.insert (xml, ' ')
+			end
+			table.remove (xml, #xml) -- strip last space
+		end
+		if (isEmptyElement) then
+			table.insert (xml, ' />')
+			return
+		else
+			table.insert (xml, '>')
+		end
+	end
+	if (hasValue) then
+		table.insert (xml, XMLEncode (tostring (item.Value)))
+	end
+	if (hasChildren) then
+		for _, child in ipairs (item.ChildNodes) do
+			CreateXML (child, xml)
+		end
+	end
+	if (hasTag) then
+		table.insert (xml, '<')
+		table.insert (xml, '/')
+		table.insert (xml, item.Name)
+		table.insert (xml, '>')
+	end
+
+	if (isRoot) then
+		return table.concat (xml)
+	end
 end
 
 --[[
