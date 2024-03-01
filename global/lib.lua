@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 37
+COMMON_LIB_VER = 38
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1161,4 +1161,32 @@ function GetTableSize (t)
 		size = size + 1
 	end
 	return size
+end
+
+function uint16To2Bytes (uint16, isLittleEndian)
+	local b1, b2
+
+	b1 = bit.rshift (bit.band (uint16, 0xFF00), 8)
+	b2 = bit.rshift (bit.band (uint16, 0x00FF), 0)
+
+	if (isLittleEndian) then
+		return string.char (b2, b1)
+	else
+		return string.char (b1, b2)
+	end
+end
+
+function uint32To4Bytes (uint32, isLittleEndian)
+	local b1, b2, b3, b4
+
+	b1 = bit.rshift (bit.band (uint32, 0xFF000000), 24)
+	b2 = bit.rshift (bit.band (uint32, 0x00FF0000), 16)
+	b3 = bit.rshift (bit.band (uint32, 0x0000FF00), 8)
+	b4 = bit.rshift (bit.band (uint32, 0x000000FF), 0)
+
+	if (isLittleEndian) then
+		return string.char (b4, b3, b2, b1)
+	else
+		return string.char (b1, b2, b3, b4)
+	end
 end
