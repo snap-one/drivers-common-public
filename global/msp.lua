@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 111
+COMMON_MSP_VER = 112
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2436,16 +2436,67 @@ function Navigator:ConfirmLogOut (idBinding, seq, args)
 	return ({NextScreen = '#home'})
 end
 
-function Navigator:SettingChanged (idBinding, seq, args)
-	local value = args.Value
-	if (args.PropertyName == 'password') then
-		value = C4:Encrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, value, AES_ENC_DEFAULTS)
+function Navigator:GetSettings (idBinding, seq, args)
+	local settings = {}
+
+	for funcName, func in pairs (Navigator) do
+		local settingName = string.match (funcName, 'GetSettings_(%w+)')
+		if (settingName) then
+			local success, settingValue = pcall (func, self)
+			if (success) then
+				settings [settingName] = settingValue
+			end
+		end
 	end
-	self.AuthSettings [args.PropertyName] = value
+
+	local settingsXML = XMLTag (nil, settings)
+	return {Settings = settingsXML}
+end
+
+function Navigator:SettingChanged (idBinding, seq, args)
+	local success, ret
+
+	if (Navigator ['SettingChanged_' .. args.PropertyName] and type (Navigator ['SettingChanged_' .. args.PropertyName]) == 'function') then
+		success, ret = pcall (Navigator ['SettingChanged_' .. args.PropertyName], self, args.Value)
+	end
+	if (success == true) then
+		return (ret)
+	elseif (success == false) then
+		MetricsHandler:SetCounter ('Error_SettingChanged')
+		print ('SettingChanged error: ', ret, args.PropertyName, args.Value)
+	end
+end
+
+function Navigator:GetSettings_username ()
+	local username = ''
+	if (Select (self, 'AuthSettings', 'username')) then
+		username = self.AuthSettings.username
+	end
+	return username
+end
+
+function Navigator:SettingChanged_username (value)
+	self.AuthSettings.username = value
 	return ('')
 end
 
-function Navigator:GetSettings (idBinding, seq, args)
+function Navigator:GetSettings_password ()
+	local password = ''
+	if (Select (self, 'AuthSettings', 'password')) then
+		password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, self.AuthSettings.password, AES_DEC_DEFAULTS)
+	end
+	return password
+end
+
+function Navigator:SettingChanged_password (value)
+	local enc = C4:Encrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, value, AES_ENC_DEFAULTS)
+	if (enc) then
+		self.AuthSettings.password = value
+	end
+	return ('')
+end
+
+function Navigator:GetSettings_status ()
 	local status
 	if (LOGGED_IN == true) then
 		status = 'Logged In'
@@ -2454,14 +2505,7 @@ function Navigator:GetSettings (idBinding, seq, args)
 	else
 		status = 'Logged Out'
 	end
-	local username = self.AuthSettings.username or ''
-	local password = ''
-	if (self.AuthSettings.password) then
-		password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, self.AuthSettings.password, AES_DEC_DEFAULTS)
-	end
-
-	local settings = XMLTag ('username', username) .. XMLTag ('password', password) .. XMLTag ('status', status)
-	return {Settings = settings}
+	return status
 end
 
 function Navigator:GetSearchHistory (idBinding, seq, args)
