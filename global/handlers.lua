@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 20
+COMMON_HANDLERS_VER = 21
 
 do -- define globals
 	DEBUG_RFN = false
@@ -296,6 +296,8 @@ function ExecuteCommand (strCommand, tParams)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_ExecuteCommand')
 		print ('ExecuteCommand error: ', ret, strCommand)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled ExecuteCommand')
 	end
 end
 
@@ -322,8 +324,9 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnBindingChanged')
 		print ('OnBindingChanged error: ', ret, idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnBindingChanged')
 	end
-
 end
 
 function OnConnectionStatusChanged (idBinding, nPort, strStatus)
@@ -347,6 +350,8 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnConnectionStatusChanged')
 		print ('OnConnectionStatusChanged error: ', ret, idBinding, nPort, strStatus)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnConnectionStatusChanged')
 	end
 end
 
@@ -402,6 +407,8 @@ function OnDeviceEvent (firingDeviceId, eventId)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnDeviceEvent')
 		print ('OnDeviceEvent error: ', ret, firingDeviceId, eventId)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnDeviceEvent')
 	end
 end
 
@@ -457,6 +464,8 @@ function OnPropertyChanged (strProperty)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnPropertyChanged')
 		print ('OnPropertyChanged error: ', ret, strProperty, value)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnPropertyChanged')
 	end
 end
 
@@ -483,6 +492,8 @@ function OnSystemEvent (event)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnSystemEvent')
 		print ('OnSystemEvent error: ', ret, eventName, event)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnSystemEvent')
 	end
 end
 
@@ -585,6 +596,8 @@ function OnVariableChanged (strVariable, variableId)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnVariableChanged')
 		print ('OnVariableChanged error: ', ret, strVariable, value)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnVariableChanged')
 	end
 end
 
@@ -651,6 +664,8 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_OnWatchedVariableChanged')
 		print ('OnWatchedVariableChanged error: ', ret, idDevice, idVariable, strValue)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled OnWatchedVariableChanged')
 	end
 end
 
@@ -692,6 +707,8 @@ function ReceivedFromNetwork (idBinding, nPort, strData)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_ReceivedFromNetwork')
 		print ('ReceivedFromNetwork error: ', ret, idBinding, nPort, strData)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled ReceivedFromNetwork')
 	end
 end
 
@@ -727,6 +744,8 @@ function ReceivedFromProxy (idBinding, strCommand, tParams)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_ReceivedFromProxy')
 		print ('ReceivedFromProxy error: ', ret, idBinding, strCommand)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled ReceivedFromProxy')
 	end
 end
 
@@ -750,6 +769,8 @@ function TestCondition (strConditionName, tParams)
 	elseif (success == false) then
 		MetricsHandler:SetCounter ('Error_TestCondition')
 		print ('TestCondition error: ', ret, strConditionName)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled TestCondition')
 	end
 end
 
@@ -772,5 +793,7 @@ function UIRequest (strCommand, tParams)
 		return (ret)
 	elseif (success == false) then
 		print ('UIRequest Lua error: ', strCommand, ret)
+	elseif (DEBUGPRINT) then
+		print ('Unhandled UIRequest')
 	end
 end
