@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 112
+COMMON_MSP_VER = 113
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -78,7 +78,7 @@ do	--Setup Metrics
 	MetricsMSP = Metrics:new ('dcp_msp', COMMON_MSP_VER)
 end
 
-function OnDriverDestroyed ()
+function OnDriverDestroyed (driverInitType)
 	C4:UnregisterSystemEvent (C4SystemEvents.OnPIP, 0)
 
 	UnregisterVariableListener (C4_DIGITAL_AUDIO, DIGITAL_AUDIO_VARS.ROOM_QUEUE_SETTINGS)
@@ -89,7 +89,7 @@ function OnDriverDestroyed ()
 	KillAllTimers ()
 
 	if (OnDriverDestroyedTasks and type (OnDriverDestroyedTasks) == 'function') then
-		local success, ret = pcall (OnDriverDestroyedTasks)
+		local success, ret = pcall (OnDriverDestroyedTasks, driverInitType)
 		if (success) then
 			if (ret) then
 			end
@@ -99,10 +99,10 @@ function OnDriverDestroyed ()
 	end
 end
 
-function OnDriverInit ()
+function OnDriverInit (driverInitType)
 	C4:RegisterSystemEvent (C4SystemEvents.OnPIP, 0)
 	if (OnDriverInitTasks and type (OnDriverInitTasks) == 'function') then
-		local success, ret = pcall (OnDriverInitTasks)
+		local success, ret = pcall (OnDriverInitTasks, driverInitType)
 		if (success) then
 			if (ret) then
 			end
@@ -112,7 +112,7 @@ function OnDriverInit ()
 	end
 end
 
-function OnDriverLateInit ()
+function OnDriverLateInit (driverInitType)
 	local minimumVersion
 	if (C4.GetDriverConfigInfo) then
 		minimumVersion = C4:GetDriverConfigInfo ('minimum_os_version')
@@ -219,7 +219,7 @@ function OnDriverLateInit ()
 	end
 
 	if (OnDriverLateInitTasks and type (OnDriverLateInitTasks) == 'function') then
-		local success, ret = pcall (OnDriverLateInitTasks)
+		local success, ret = pcall (OnDriverLateInitTasks, driverInitType)
 		if (success) then
 			if (ret) then
 			end
