@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 30
+AUTH_CODE_GRANT_VER = 31
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -85,7 +85,7 @@ function oauth:new (tParams, providedRefreshToken)
 	return o, willGenerateRefreshEvent
 end
 
-function oauth:MakeState (contextInfo, extras, uriToCompletePage)
+function oauth:MakeState (contextInfo, extraParamsForAuthLink, uriToCompletePage)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -109,7 +109,7 @@ function oauth:MakeState (contextInfo, extras, uriToCompletePage)
 	local context = {
 		contextInfo = contextInfo,
 		state = state,
-		extras = extras
+		extraParamsForAuthLink = extraParamsForAuthLink
 	}
 
 	self.metrics:SetCounter ('MakeStateAttempt')
@@ -127,7 +127,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 	if (responseCode == 200) then
 		self.metrics:SetCounter ('MakeStateSuccess')
 		local state = context.state
-		local extras = context.extras
+		local extraParamsForAuthLink = context.extraParamsForAuthLink
 
 		local nonce = data.nonce
 		local expiresAt = data.expiresAt or (os.time () + self.REDIRECT_DURATION)
@@ -150,11 +150,11 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 		end
 		self.Timer.CheckState = SetTimer (self.Timer.CheckState, 5 * ONE_SECOND, _timer, true)
 
-		self:GetLinkCode (state, contextInfo, extras)
+		self:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
 	end
 end
 
-function oauth:GetLinkCode (state, contextInfo, extras)
+function oauth:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -187,8 +187,8 @@ function oauth:GetLinkCode (state, contextInfo, extras)
 		args.code_challenge_method = 'S256'
 	end
 
-	if (extras and type (extras) == 'table') then
-		for k, v in pairs (extras) do
+	if (extraParamsForAuthLink and type (extraParamsForAuthLink) == 'table') then
+		for k, v in pairs (extraParamsForAuthLink) do
 			args [k] = v
 		end
 	end
@@ -455,6 +455,8 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 end
 
 function oauth:DeleteRefreshToken ()
+	local existed = (self.REFRESH_TOKEN ~= nil)
+
 	local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
 	PersistDeleteValue (persistStoreKey)
 	self.ACCESS_TOKEN = nil
@@ -463,6 +465,8 @@ function oauth:DeleteRefreshToken ()
 	self.Timer.RefreshToken = CancelTimer (self.Timer.RefreshToken)
 
 	self.metrics:SetCounter ('RefreshTokenDeleted')
+
+	self:notify ('RefreshTokenDeleted', nil, existed)
 end
 
 function oauth:setLink (link, contextInfo)
@@ -479,9 +483,9 @@ function oauth:setLink (link, contextInfo)
 	end
 end
 
-function oauth:notify (handler, ...)
+function oauth:notify (handler, contextInfo, ...)
 	if (self.notifyHandler [handler] and type (self.notifyHandler [handler]) == 'function') then
-		local success, ret = pcall (self.notifyHandler [handler], ...)
+		local success, ret = pcall (self.notifyHandler [handler], contextInfo, ...)
 		if (success == false) then
 			print ((self.NAME or 'OAuth') .. ':' .. handler .. ' Lua error: ', ret, ...)
 		end
