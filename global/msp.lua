@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 113
+COMMON_MSP_VER = 114
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1912,6 +1912,8 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 			end
 			if (statusChange or status.status ~= 'OK_playing') then
 				MetricsMSP:SetCounter ('QueueStreamStatus_' .. status.status)
+
+				LogPlayEvent ('queue_status', qId, status.status)
 			end
 		end
 	end
@@ -2089,6 +2091,13 @@ function LogPlayEvent (source, qId, event, nextTrack)
 		elseif (event == 'STOP') then
 		elseif (event == 'END') then
 		elseif (event == 'DELETED') then
+		end
+
+	elseif (source == 'queue_status') then
+		if (event == 'OK_addmed') then
+		elseif (event == 'OK_playing') then
+		elseif (event == 'ERR_ResourceNotFound') then
+		elseif (event == 'ERR_General') then
 		end
 	end
 
