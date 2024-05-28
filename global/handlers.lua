@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 22
+COMMON_HANDLERS_VER = 23
 
 do -- define globals
 	DEBUG_RFN = false
@@ -330,14 +330,24 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 end
 
 function OnConnectionStatusChanged (idBinding, nPort, strStatus)
-	local init = {
-		'OnConnectionStatusChanged: ' .. idBinding
-	}
-	local tParams = {
-		nPort = nPort,
-		strStatus = strStatus,
-	}
-	HandlerDebug (init, tParams)
+	local suppressOCS
+
+	if (OCS.SuppressOCS) then
+		if (OCS.SuppressOCS [idBinding]) then
+			suppressOCS = true
+		end
+	end
+
+	if (not suppressOCS) then
+		local init = {
+			'OnConnectionStatusChanged: ' .. idBinding
+		}
+		local tParams = {
+			nPort = nPort,
+			strStatus = strStatus,
+		}
+		HandlerDebug (init, tParams)
+	end
 
 	local success, ret
 
