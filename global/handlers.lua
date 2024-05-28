@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 21
+COMMON_HANDLERS_VER = 22
 
 do -- define globals
 	DEBUG_RFN = false
@@ -681,6 +681,12 @@ function ReceivedFromNetwork (idBinding, nPort, strData)
 	if (SSDP) then
 		if (SSDP.SearchTargets and SSDP.SearchTargets [idBinding]) then
 			suppressRFN = not (DEBUG_RFN)
+		end
+	end
+
+	if (RFN.SuppressRFN) then
+		if (RFN.SuppressRFN [idBinding]) then
+			suppressRFN = true
 		end
 	end
 
