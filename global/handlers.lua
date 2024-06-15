@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 24
+COMMON_HANDLERS_VER = 25
 
 do -- define globals
 	DEBUG_RFN = false
@@ -187,18 +187,18 @@ end
 ]]
 
 do --Globals
-	EC = EC or {}
-	OBC = OBC or {}
-	ODE = ODE or {}
-	OCS = OCS or {}
-	OPC = OPC or {}
-	OSE = OSE or {}
-	OVC = OVC or {}
-	OWVC = OWVC or {}
-	RFN = RFN or {}
-	RFP = RFP or {}
-	TC = TC or {}
-	UIR = UIR or {}
+	EC = EC or { suppressDebug = {}, }
+	OBC = OBC or { suppressDebug = {}, }
+	ODE = ODE or { suppressDebug = {}, }
+	OCS = OCS or { suppressDebug = {}, }
+	OPC = OPC or { suppressDebug = {}, }
+	OSE = OSE or { suppressDebug = {}, }
+	OVC = OVC or { suppressDebug = {}, }
+	OWVC = OWVC or { suppressDebug = {}, }
+	RFN = RFN or { suppressDebug = {}, }
+	RFP = RFP or { suppressDebug = {}, }
+	TC = TC or { suppressDebug = {}, }
+	UIR = UIR or { suppressDebug = {}, }
 
 	ValidVarTypes = {
 		BOOL = true,
