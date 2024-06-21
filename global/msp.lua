@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 114
+COMMON_MSP_VER = 115
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1651,7 +1651,6 @@ function UpdateProgress (qId)
 					label = elapsedString .. ' / -' .. remainingString,
 					canSeek = SUPPORTS_SEEK_ABSOLUTE,
 				}
-				SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 			end
 		else
 			args = {
