@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 39
+COMMON_LIB_VER = 40
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1196,5 +1196,5 @@ function IsFirstInstanceOfDriver ()
 
 	local isFirstInstance = (lowestDeviceId == C4:GetDeviceID ())
 
-	return isFirstInstance
+	return isFirstInstance, lowestDeviceId
 end
