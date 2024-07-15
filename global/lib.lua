@@ -1,12 +1,12 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 38
+COMMON_LIB_VER = 39
 
 JSON = require ('drivers-common-public.module.json')
 
 pcall (require, 'drivers-common-internal.global.production')
 
-do	-- set AES and SHA defaults
+do -- set AES and SHA defaults
 	AES_DEC_DEFAULTS = {
 		return_encoding = 'NONE',
 		key_encoding = 'NONE',
@@ -29,60 +29,60 @@ do	-- set AES and SHA defaults
 	}
 end
 
-do	-- Set common var IDs
+do -- Set common var IDs
 	ROOM_VARS = {
-		['CURRENT_SELECTED_DEVICE']		= 1000,
-		['CURRENT_AUDIO_DEVICE']		= 1001,
-		['CURRENT_VIDEO_DEVICE']		= 1002,
-		['AUDIO_VOLUME_DEVICE']			= 1003,
-		['VIDEO_VOLUME_DEVICE']			= 1004,
-		['CURRENT_MEDIA']				= 1005,
-		['CURRENT_AUDIO_PATH']			= 1007,
-		['CURRENT_VIDEO_PATH']			= 1008,
-		['CURRENT_VIDEO_AUDIO_PATH']	= 1009,
-		['POWER_STATE']					= 1010,
-		['CURRENT_VOLUME']				= 1011,
-		['TEMPERATURE_ID']				= 1012,
-		['TEMPERATURE_CONTROL_ID']		= 1013,
-		['SECURITY_SYSTEM_ID']			= 1014,
-		['CURRENT_VOLUME_DEVICE_ID']	= 1015,
-		['HAS_DISCRETE_VOLUME']			= 1016,
-		['HAS_DISCRETE_MUTE']			= 1017,
-		['IS_MUTED']					= 1018,
-		['IN_NAVIGATION	']				= 1019,
-		['USE_DEFAULT_VOLUMES']			= 1020,
-		['DEFAULT_AUDIO_VOLUME']		= 1021,
-		['VOLUME_IS_LINKED']			= 1023,
-		['DEFAULT_VIDEO_VOLUME']		= 1022,
-		['LINKED_ROOM_LIST']			= 1024,
-		['MUTE_IS_LINKED']				= 1025,
-		['ROOMOFF_IS_LINKED']			= 1026,
-		['SELECTIONS_LINKED']			= 1027,
-		['CURRENT_LINKED_MEDIA_SCENE']	= 1028,
-		['ROOM_HIDDEN']					= 1029,
-		['MEDIA_SCENE_ACTIVE']			= 1030,
-		['CURRENT MEDIA INFO'] 			= 1031,
-		['LAST_DEVICE_GROUP']			= 1032,
-		['AVAILABLE_CAMERAS']			= 1033,
-		['POOLS']						= 1034,
-		['SCENE_IS_DISCRETE_VOLUME']	= 1035,
-		['PLAYING_AUDIO_DEVICE']		= 1036,
-		['ANNOUNCEMENT_DISABLED']		= 1037,
+		['CURRENT_SELECTED_DEVICE']    = 1000,
+		['CURRENT_AUDIO_DEVICE']       = 1001,
+		['CURRENT_VIDEO_DEVICE']       = 1002,
+		['AUDIO_VOLUME_DEVICE']        = 1003,
+		['VIDEO_VOLUME_DEVICE']        = 1004,
+		['CURRENT_MEDIA']              = 1005,
+		['CURRENT_AUDIO_PATH']         = 1007,
+		['CURRENT_VIDEO_PATH']         = 1008,
+		['CURRENT_VIDEO_AUDIO_PATH']   = 1009,
+		['POWER_STATE']                = 1010,
+		['CURRENT_VOLUME']             = 1011,
+		['TEMPERATURE_ID']             = 1012,
+		['TEMPERATURE_CONTROL_ID']     = 1013,
+		['SECURITY_SYSTEM_ID']         = 1014,
+		['CURRENT_VOLUME_DEVICE_ID']   = 1015,
+		['HAS_DISCRETE_VOLUME']        = 1016,
+		['HAS_DISCRETE_MUTE']          = 1017,
+		['IS_MUTED']                   = 1018,
+		['IN_NAVIGATION	']             = 1019,
+		['USE_DEFAULT_VOLUMES']        = 1020,
+		['DEFAULT_AUDIO_VOLUME']       = 1021,
+		['VOLUME_IS_LINKED']           = 1023,
+		['DEFAULT_VIDEO_VOLUME']       = 1022,
+		['LINKED_ROOM_LIST']           = 1024,
+		['MUTE_IS_LINKED']             = 1025,
+		['ROOMOFF_IS_LINKED']          = 1026,
+		['SELECTIONS_LINKED']          = 1027,
+		['CURRENT_LINKED_MEDIA_SCENE'] = 1028,
+		['ROOM_HIDDEN']                = 1029,
+		['MEDIA_SCENE_ACTIVE']         = 1030,
+		['CURRENT MEDIA INFO']         = 1031,
+		['LAST_DEVICE_GROUP']          = 1032,
+		['AVAILABLE_CAMERAS']          = 1033,
+		['POOLS']                      = 1034,
+		['SCENE_IS_DISCRETE_VOLUME']   = 1035,
+		['PLAYING_AUDIO_DEVICE']       = 1036,
+		['ANNOUNCEMENT_DISABLED']      = 1037,
 	}
 
 	DIGITAL_AUDIO_VARS = {
-		['ROOM_HISTORY']				= 1002,
-		['ROOM_QUEUE_SETTINGS']			= 1003,
-		['QUEUE_STATUS']				= 1004,
-		['QUEUE_INFO']					= 1005,
-		['QUEUE_STATUS_V2']				= 1006,
-		['QUEUE_INFO_V2']				= 1007,
-		['PLAY_PREFERENCE']				= 1008,
-		['ROOM_MAP_INFO']				= 1009,
-		['AUDIO LATENCY PROFILE']		= 1010,
-		['MAX_AUDIO_QUALITY']			= 1011,
-		['AUDIO_MODE_VER']				= 1012,
-		['AUDIO_FORCED_ADV']			= 2000,
+		['ROOM_HISTORY']          = 1002,
+		['ROOM_QUEUE_SETTINGS']   = 1003,
+		['QUEUE_STATUS']          = 1004,
+		['QUEUE_INFO']            = 1005,
+		['QUEUE_STATUS_V2']       = 1006,
+		['QUEUE_INFO_V2']         = 1007,
+		['PLAY_PREFERENCE']       = 1008,
+		['ROOM_MAP_INFO']         = 1009,
+		['AUDIO LATENCY PROFILE'] = 1010,
+		['MAX_AUDIO_QUALITY']     = 1011,
+		['AUDIO_MODE_VER']        = 1012,
+		['AUDIO_FORCED_ADV']      = 2000,
 	}
 
 	PROJECT_VARS = {
@@ -93,7 +93,6 @@ do	-- Set common var IDs
 end
 
 do -- LOCALE FIXING FOR tostring AND tonumber
-
 	if (not tostring_native) then
 		tostring_native = tostring
 	end
@@ -157,7 +156,7 @@ function dbg (strDebugText, ...)
 			t = os.time ()
 			ms = ''
 		end
-		local s = string.format("%-21s : ", os.date ('%x %X') .. ms)
+		local s = string.format ("%-21s : ", os.date ('%x %X') .. ms)
 
 		print (s .. (strDebugText or ''), ...)
 		C4:DebugLog (strDebugText)
@@ -165,7 +164,10 @@ function dbg (strDebugText, ...)
 end
 
 function dbgdump (strDebugText, ...)
-	if (DEBUGPRINT) then hexdump (strDebugText or '') print (...) end
+	if (DEBUGPRINT) then
+		hexdump (strDebugText or '')
+		print (...)
+	end
 end
 
 function gettext (text)
@@ -209,7 +211,8 @@ end
 
 function VersionCheck (requires_version)
 	local curver = {}
-	curver [1], curver [2], curver [3], curver [4] = string.match (C4:GetVersionInfo ().version, '^(%d*)%.?(%d*)%.?(%d*)%.?(%d*)')
+	curver [1], curver [2], curver [3], curver [4] = string.match (C4:GetVersionInfo ().version,
+		'^(%d*)%.?(%d*)%.?(%d*)%.?(%d*)')
 	local reqver = {}
 	reqver [1], reqver [2], reqver [3], reqver [4] = string.match (requires_version, '^(%d*)%.?(%d*)%.?(%d*)%.?(%d*)')
 
@@ -257,23 +260,21 @@ function GetTimeString (data, forceHours)
 		local minutes = math.floor (data / 60) % 60
 		local hours = math.floor (data / 3600)
 
-		strHours = string.format('%d', hours)
+		strHours = string.format ('%d', hours)
 
 		if (hours ~= 0 or forceHours) then
 			strTime = strHours .. ':'
-			strMinutes = string.format('%02d', minutes)
+			strMinutes = string.format ('%02d', minutes)
 		else
-			strMinutes = string.format('%d', minutes)
+			strMinutes = string.format ('%d', minutes)
 		end
 
-		strSeconds = string.format('%02d', seconds)
+		strSeconds = string.format ('%02d', seconds)
 
 		strTime = strTime .. strMinutes .. ':' .. strSeconds
 		return strTime
-
 	elseif (type (data) == 'string') then
 		return data
-
 	else
 		return 0
 	end
@@ -290,7 +291,7 @@ function GetTimeNumber (data)
 		if (hours and not minutes) then
 			minutes = hours
 			hours = 0
-		elseif (minutes and not hours ) then
+		elseif (minutes and not hours) then
 			hours = 0
 		elseif (not minutes and not hours) then
 			minutes = 0
@@ -300,10 +301,8 @@ function GetTimeNumber (data)
 
 		hours, minutes, seconds = tonumber (hours), tonumber (minutes), tonumber (seconds)
 		return ((hours * 3600) + (minutes * 60) + seconds)
-
 	elseif (type (data) == 'number') then
 		return data
-
 	else
 		return 0
 	end
@@ -312,10 +311,8 @@ end
 function ConvertTime (data, forceHours)
 	if (type (data) == 'number') then
 		return (GetTimeString (data, forceHours))
-
 	elseif (type (data) == 'string') then
 		return (GetTimeNumber (data))
-
 	else
 		return 0
 	end
@@ -331,13 +328,13 @@ function RelativeTime (timeNow, timeThen, prefix)
 	local ret
 
 	local words = {
-		{ name = 'second', duration = 1 },
-		{ name = 'minute', duration = 60 },
-		{ name = 'hour', duration = 60 * 60 },
-		{ name = 'day', duration = 24 * 60 * 60 },
-		{ name = 'week', duration = 7 * 24 * 60 * 60 },
-		{ name = 'month', duration = 30 * 24 * 60 * 60 },
-		{ name = 'year', duration = 365 * 24 * 60 * 60 },
+		{ name = 'second', duration = 1, },
+		{ name = 'minute', duration = 60, },
+		{ name = 'hour',   duration = 60 * 60, },
+		{ name = 'day',    duration = 24 * 60 * 60, },
+		{ name = 'week',   duration = 7 * 24 * 60 * 60, },
+		{ name = 'month',  duration = 30 * 24 * 60 * 60, },
+		{ name = 'year',   duration = 365 * 24 * 60 * 60, },
 	}
 
 	if (diff == 0) then
@@ -345,7 +342,7 @@ function RelativeTime (timeNow, timeThen, prefix)
 	else
 		for i, word in ipairs (words) do
 			if (diff < word.duration) then
-				ret = tostring (math.floor (diff / words [i-1].duration)) .. ' ' .. words [i-1].name .. 's'
+				ret = tostring (math.floor (diff / words [i - 1].duration)) .. ' ' .. words [i - 1].name .. 's'
 				break
 			elseif (diff < word.duration * 2) then
 				if (word.name == 'hour') then
@@ -385,13 +382,13 @@ function XMLDecode (s)
 
 	s = string.gsub (s, '%<%!%[CDATA%[(.-)%]%]%>', function (a) return (a) end)
 
-	s = string.gsub (s, '&quot;'	, '"')
-	s = string.gsub (s, '&lt;'		, '<')
-	s = string.gsub (s, '&gt;'		, '>')
-	s = string.gsub (s, '&apos;'	, '\'')
-	s = string.gsub (s, '&#x(.-);', function (a) return string.char (tonumber (a, 16) % 256) end )
-	s = string.gsub (s, '&#(.-);',	function (a) return string.char (tonumber (a) % 256) end )
-	s = string.gsub (s, '&amp;'	, 	'&')
+	s = string.gsub (s, '&quot;', '"')
+	s = string.gsub (s, '&lt;', '<')
+	s = string.gsub (s, '&gt;', '>')
+	s = string.gsub (s, '&apos;', '\'')
+	s = string.gsub (s, '&#x(.-);', function (a) return string.char (tonumber (a, 16) % 256) end)
+	s = string.gsub (s, '&#(.-);', function (a) return string.char (tonumber (a) % 256) end)
+	s = string.gsub (s, '&amp;', '&')
 
 	return s
 end
@@ -401,11 +398,11 @@ function XMLEncode (s)
 		return (s)
 	end
 
-	s = string.gsub (s, '&',	'&amp;')
-	s = string.gsub (s, '"',	'&quot;')
-	s = string.gsub (s, '<',	'&lt;')
-	s = string.gsub (s, '>',	'&gt;')
-	s = string.gsub (s, '\'',	'&apos;')
+	s = string.gsub (s, '&', '&amp;')
+	s = string.gsub (s, '"', '&quot;')
+	s = string.gsub (s, '<', '&lt;')
+	s = string.gsub (s, '>', '&gt;')
+	s = string.gsub (s, '\'', '&apos;')
 	return s
 end
 
@@ -436,7 +433,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 
 	if (strName and tAttribs and type (tAttribs) == 'table') then
 		local attribs = {
-			strName
+			strName,
 		}
 		for k, v in pairs (tAttribs) do
 			local a = {
@@ -464,7 +461,6 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 			for _, subItem in ipairs (tParams) do
 				table.insert (retXML, XMLTag (arrayTag, subItem, tagSubTables, xmlEncodeElements))
 			end
-
 		else
 			for k, v in pairs (tParams) do
 				if (v == nil) then v = '' end
@@ -491,7 +487,6 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 				end
 			end
 		end
-
 	elseif (tParams) then
 		if (xmlEncodeElements ~= false) then
 			table.insert (retXML, XMLEncode (tostring (tParams)))
@@ -500,7 +495,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 		end
 	end
 
-	addTag (strName,true)
+	addTag (strName, true)
 
 	return (table.concat (retXML))
 end
@@ -653,12 +648,12 @@ end
 
 function RefreshNavs ()
 	local cli = C4:CreateTCPClient ()
-	:OnConnect (function (client)
+		:OnConnect (function (client)
 			client:Write ('<c4soap name="PIP" async="1"></c4soap>\0'):Close ()
-	end)
-	:OnError (function (client)
+		end)
+		:OnError (function (client)
 			client:Close ()
-	end)
+		end)
 
 	cli:Connect ('127.0.0.1', 5020)
 end
@@ -668,12 +663,12 @@ function HideProxyInAllRooms (idBinding)
 	if (idBinding == 0) then return end -- silently fail if no binding passed in.
 
 	-- Get Bound Proxy's Device ID / Name.
-	local id, name = next(C4:GetBoundConsumerDevices(C4:GetDeviceID(), idBinding))
+	local id, name = next (C4:GetBoundConsumerDevices (C4:GetDeviceID (), idBinding))
 
 	-- Send hide command to all rooms, for 'ALL' Navigator groups.
-	for roomid, roomname in pairs(C4:GetDevicesByC4iName('roomdevice.c4i') or {}) do
+	for roomid, roomname in pairs (C4:GetDevicesByC4iName ('roomdevice.c4i') or {}) do
 		dbg ('Hiding device:"' .. name .. '" in room "' .. roomname .. '"')
-		C4:SendToDevice(roomid, 'SET_DEVICE_HIDDEN_STATE', {PROXY_GROUP = 'ALL', DEVICE_ID = id, IS_HIDDEN = true})
+		C4:SendToDevice (roomid, 'SET_DEVICE_HIDDEN_STATE', { PROXY_GROUP = 'ALL', DEVICE_ID = id, IS_HIDDEN = true, })
 	end
 end
 
@@ -682,7 +677,11 @@ function GetFileName (deviceId)
 		deviceId = C4:GetDeviceID ()
 	end
 
-	local info = C4:GetDevices ({DeviceIds = tostring (deviceId)})
+	local params = {
+		DeviceIds = tostring (deviceId),
+	}
+
+	local info = C4:GetDevices (params)
 
 	local protocol = Select (info, deviceId, 'protocol')
 
@@ -837,7 +836,7 @@ function GetProject ()
 	h = string.gsub (h, '><', '>\r\n<')
 	h = h .. '\r\n'
 
-	local p = {'{"project" : '}
+	local p = { '{"project" : ', }
 
 	local c
 
@@ -847,38 +846,32 @@ function GetProject ()
 		if (string.find (line, '^<item')) then
 			table.insert (p, '{')
 			item = item + 1
-
 		elseif (string.find (line, '^</item>')) then
 			table.insert (p, '},')
 			item = item - 1
-
 		elseif (string.find (line, '^<subitems>')) then
 			table.insert (p, '"subItems" : [')
 			subitem = subitem + 1
-
 		elseif (string.find (line, '^</subitems>')) then
-				table.insert (p, '],')
-				subitem = subitem - 1
-
+			table.insert (p, '],')
+			subitem = subitem - 1
 		elseif (string.find (line, '^<id>')) then
 			local id = string.match (line, '<id>(.-)</id>')
 			if (id) then
 				table.insert (p, '"id" : ' .. id .. ',')
 			end
-
 		elseif (string.find (line, '^<c4i>')) then
 			local c4i = string.match (line, '<c4i>(.-)</c4i>')
 			if (c4i) then
 				table.insert (p, '"c4i" : "' .. c4i .. '",')
 			end
-
 		elseif (string.find (line, '^<type>')) then
 			local deviceType = string.match (line, '<type>(.-)</type>')
 			if (deviceType) then
 				table.insert (p, '"deviceType" : ' .. deviceType .. ',')
 			end
 
-		--[[
+			--[[
 			1 = ROOT
 			2 = SITE
 			3 = BUILDING
@@ -889,7 +882,6 @@ function GetProject ()
 			8 = ROOM_DEVICE
 			9 = AGENT
 		]]
-
 		elseif (string.find (line, '^<name>')) then
 			local name = string.match (line, '<name>(.-)</name>')
 			if (name) then
@@ -1099,7 +1091,7 @@ function Select (data, ...)
 
 	local tablePack = function (...)
 		return {
-			n = select ('#', ...), ...
+			n = select ('#', ...), ...,
 		}
 	end
 
@@ -1189,4 +1181,20 @@ function uint32To4Bytes (uint32, isLittleEndian)
 	else
 		return string.char (b1, b2, b3, b4)
 	end
+end
+
+function IsFirstInstanceOfDriver ()
+	local filename = C4:GetDriverFileName ()
+	local deviceIds = C4:GetDevicesByC4iName (filename) or {}
+
+	local lowestDeviceId = math.huge
+	for id, _ in pairs (deviceIds) do
+		if (id < lowestDeviceId) then
+			lowestDeviceId = id
+		end
+	end
+
+	local isFirstInstance = (lowestDeviceId == C4:GetDeviceID ())
+
+	return isFirstInstance
 end
