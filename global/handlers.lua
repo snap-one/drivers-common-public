@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 25
+COMMON_HANDLERS_VER = 26
 
 do -- define globals
 	DEBUG_RFN = false
@@ -401,6 +401,10 @@ function UnregisterDeviceEvent (firingDeviceId, eventId)
 		ODE [firingDeviceId] [eventId] = nil
 	end
 
+	if (not next (ODE [firingDeviceId])) then
+		ODE [firingDeviceId] = nil
+	end
+
 	C4:UnregisterDeviceEvent (firingDeviceId, eventId)
 end
 
@@ -665,6 +669,10 @@ function UnregisterVariableListener (idDevice, idVariable)
 
 	if (OWVC and OWVC [idDevice]) then
 		OWVC [idDevice] [idVariable] = nil
+	end
+
+	if (not next (OWVC [idDevice])) then
+		OWVC [idDevice] = nil
 	end
 
 	C4:UnregisterVariableListener (idDevice, idVariable)
