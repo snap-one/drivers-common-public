@@ -369,7 +369,6 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 	end
 	self.Timer.RefreshingToken = SetTimer (self.Timer.RefreshingToken, 30 * ONE_SECOND, _timer)
 
-
 	self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
 end
 
@@ -405,7 +404,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self.SCOPE = data.scope or self.SCOPE
 
-		self.EXPIRES_IN = data.expires_in or self.EXPIRES_IN or self.DEFAULT_EXPIRES_IN
+		self.EXPIRES_IN = tonumber(data.expires_in) or self.EXPIRES_IN or self.DEFAULT_EXPIRES_IN
 
 		if (self.EXPIRES_IN and self.REFRESH_TOKEN) then
 			local _timer = function (timer)
@@ -441,7 +440,6 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		print ((self.NAME or 'OAuth') .. ': Access Token denied:', data.error, data.error_description, data.error_uri)
 
 		self:setLink ('')
-
 
 		self.metrics:SetCounter ('AccessTokenDenied')
 		if (data.error) then
