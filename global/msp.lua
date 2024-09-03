@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 115
+COMMON_MSP_VER = 116
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -763,6 +763,13 @@ function AddTracksToQueue (trackList, roomId, playOption, radioInfo, radioSkips,
 				can_repeat = (not (isRadio or isStream)),
 			},
 		}
+
+		local _timer = function (timer)
+			MetricsMSP:SetCounter ('QueueTimedOut')
+			CancelTimer (SongQs [roomId].TimeOutTimer)
+			SongQs [roomId] = nil
+		end
+		SongQs [roomId].TimeOutTimer = SetTimer (SongQs [roomId].TimeOutTimer, 30 * ONE_SECOND, _timer)
 
 		if (playOption == 'SHUFFLE') then
 			SongQs [roomId].CurrentTrack = math.random (#trackList)
@@ -1797,6 +1804,7 @@ function OnQueueStateChanged (idBinding, tParams)
 		for _, roomId in ipairs (GetRoomMapByQueueID (qId)) do
 			if (SongQs [roomId]) then
 				SongQs [qId] = SongQs [roomId]
+				SongQs [roomId].TimeOutTimer = CancelTimer (SongQs [roomId].TimeOutTimer)
 				SongQs [roomId] = nil
 				thisQ = SongQs [qId]
 				thisQ.Q._parent = thisQ
