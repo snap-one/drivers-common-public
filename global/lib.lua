@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 40
+COMMON_LIB_VER = 41
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1197,4 +1197,25 @@ function IsFirstInstanceOfDriver ()
 	local isFirstInstance = (lowestDeviceId == C4:GetDeviceID ())
 
 	return isFirstInstance, lowestDeviceId
+end
+
+function GetTruthy (value, emptyTableIsTrue)
+	if (type (emptyTableIsTrue) ~= 'boolean') then
+		emptyTableIsTrue = false
+	end
+
+	local ret
+	if (type (value) == 'string') then
+		ret = (string.lower (value) == 'true' or value == '1')
+	elseif (type (value) == 'number') then
+		ret = (value == 1)
+	elseif (type (value) == 'boolean') then
+		ret = value
+	elseif (type (value) == 'table') then
+		ret = emptyTableIsTrue or (next (value) ~= 'nil')
+	else
+		ret = (value ~= nil)
+	end
+
+	return ret
 end
