@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 41
+COMMON_LIB_VER = 42
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -487,7 +487,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 				end
 			end
 		end
-	elseif (tParams) then
+	elseif (tParams ~= nil) then
 		if (xmlEncodeElements ~= false) then
 			table.insert (retXML, XMLEncode (tostring (tParams)))
 		else
