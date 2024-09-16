@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 42
+COMMON_LIB_VER = 43
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -458,8 +458,12 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 			tableSize = tableSize + 1
 		end
 		if (arraySize == tableSize) then
-			for _, subItem in ipairs (tParams) do
-				table.insert (retXML, XMLTag (arrayTag, subItem, tagSubTables, xmlEncodeElements))
+			for index, subItem in ipairs (tParams) do
+				local subItemTag = index
+				if (type (arrayTag) == 'string' and #arrayTag > 0) then
+					subItemTag = arrayTag
+				end
+				table.insert (retXML, XMLTag (subItemTag, subItem, tagSubTables, xmlEncodeElements, nil, arrayTag))
 			end
 		else
 			for k, v in pairs (tParams) do
@@ -470,7 +474,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 							table.insert (retXML, image_list)
 						end
 					elseif (tagSubTables == true) then
-						table.insert (retXML, XMLTag (k, v, tagSubTables, xmlEncodeElements))
+						table.insert (retXML, XMLTag (k, v, tagSubTables, xmlEncodeElements, nil, arrayTag))
 					end
 				else
 					if (v == nil) then v = '' end
