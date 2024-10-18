@@ -1,10 +1,8 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 43
+COMMON_LIB_VER = 44
 
 JSON = require ('drivers-common-public.module.json')
-
-pcall (require, 'drivers-common-internal.global.production')
 
 do -- set AES and SHA defaults
 	AES_DEC_DEFAULTS = {
