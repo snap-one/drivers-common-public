@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 44
+COMMON_LIB_VER = 45
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1220,4 +1220,26 @@ function GetTruthy (value, emptyTableIsTrue)
 	end
 
 	return ret
+end
+
+function RenameDevice (deviceId, newName)
+	deviceId = tonumber (deviceId)
+	if (type (deviceId) ~= 'number') then
+		return
+	end
+
+	if (type (newName) ~= 'string') then
+		return
+	end
+
+	if (#newName == 0) then
+		return
+	end
+
+	local currentName = C4:GetDeviceDisplayName (deviceId)
+	if (currentName == newName) then
+		return
+	end
+
+	C4:RenameDevice (deviceId, newName)
 end
