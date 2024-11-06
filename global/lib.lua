@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 45
+COMMON_LIB_VER = 46
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1201,22 +1201,36 @@ function IsFirstInstanceOfDriver ()
 	return isFirstInstance, lowestDeviceId
 end
 
-function GetTruthy (value, emptyTableIsTrue)
-	if (type (emptyTableIsTrue) ~= 'boolean') then
-		emptyTableIsTrue = false
+function GetTruthy (value, emptyValueIsTrue)
+	if (type (emptyValueIsTrue) ~= 'boolean') then
+		emptyValueIsTrue = false
 	end
 
-	local ret
+	local ret = true
 	if (type (value) == 'string') then
-		ret = (string.lower (value) == 'true' or value == '1')
+		if (string.lower (value) == 'false') then
+			ret = false
+		elseif (string.lower (value) == 'f') then
+			ret = false
+		elseif (value == '0') then
+			ret = false
+		elseif (not emptyValueIsTrue and value == '') then
+			ret = false
+		end
 	elseif (type (value) == 'number') then
-		ret = (value == 1)
+		if (value == 0) then
+			ret = false
+		end
 	elseif (type (value) == 'boolean') then
-		ret = value
+		if (value == false) then
+			ret = false
+		end
 	elseif (type (value) == 'table') then
-		ret = emptyTableIsTrue or (next (value) ~= 'nil')
-	else
-		ret = (value ~= nil)
+		if (not emptyValueIsTrue and next (value == 'nil')) then
+			ret = false
+		end
+	elseif (type (value) == 'nil') then
+		ret = false
 	end
 
 	return ret
