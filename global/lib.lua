@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 47
+COMMON_LIB_VER = 48
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1264,4 +1264,31 @@ function RenameDevice (deviceId, newName)
 	end
 
 	C4:RenameDevice (deviceId, newName)
+end
+
+function GetNextSchedulerOccurrence (timerId)
+	local entryInfo = Select (C4Scheduler:GetEntry (timerId), 'xml')
+	local nextInfo = XMLCapture (entryInfo, 'next_occurrence')
+
+	local year = XMLCapture (nextInfo, 'year')
+	local month = XMLCapture (nextInfo, 'month')
+	local day = XMLCapture (nextInfo, 'day')
+	local hour = XMLCapture (nextInfo, 'hour')
+	local min = XMLCapture (nextInfo, 'min')
+
+	if (not (year and month and day and hour and min)) then
+		return
+	end
+
+	local date = {
+		year = year,
+		month = month,
+		day = day,
+		hour = hour,
+		min = min,
+		sec = 0,
+	}
+
+	local timestamp = os.time (date)
+	return timestamp
 end
