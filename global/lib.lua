@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 46
+COMMON_LIB_VER = 47
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -579,6 +579,14 @@ end
 --]]
 
 function XMLCapture (xmlString, tag)
+	if (type (xmlString) ~= 'string') then
+		print ('XMLCapture error: xmlString not string:', tostring (xmlString))
+		return
+	end
+	if (type (tag) ~= 'string') then
+		print ('XMLCapture error: tag not string:', tostring (tag))
+		return
+	end
 	-- plain tag
 	local tagContents = string.match (xmlString, '<' .. tag .. '>(.-)</' .. tag .. '>')
 	if (tagContents) then
