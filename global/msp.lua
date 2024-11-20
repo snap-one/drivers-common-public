@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 118
+COMMON_MSP_VER = 119
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -944,8 +944,16 @@ function PlayTrackURL (url, roomIdsToParse, idInQ, flags, nextURL, position, har
 	C4:SendToProxy (MSP_PROXY, command, params, 'COMMAND')
 end
 
-function SetNextTrackURL (nextURL, roomId, idInQ, flags)
-	local qId = GetQueueIDByRoomID (roomId)
+function SetNextTrackURL (nextURL, roomIdsToParse, idInQ, flags)
+	local roomIds, firstRoomId = ParseRoomIds (roomIdsToParse)
+
+	if (#roomIds == 0) then
+		print ('No rooms available to SetNextTrackURL:')
+		Print (roomIdsToParse)
+		return
+	end
+
+	local qId = GetQueueIDByRoomID (firstRoomId)
 	local thisQ = SongQs [qId]
 
 	if (not nextURL or nextURL == '') then
@@ -972,8 +980,8 @@ function SetNextTrackURL (nextURL, roomId, idInQ, flags)
 	MetricsMSP:SetCounter ('NextTrackPlayAttempt')
 
 	local params = {
+		ROOM_ID = table.concat (roomIds, ','),
 		REPORT_ERRORS = true,
-		ROOM_ID = roomId,
 		QUEUE_INFO = idInQ,
 		FLAGS = flags,
 		NEXT_URL = nextURL,
@@ -992,7 +1000,11 @@ function QueueSetRepeat (qId)
 			local roomId = GetRoomMapByQueueID (qId) [1]
 			if (roomId) then
 				SetNextTrackURL ('', roomId)
-				C4:SendToDevice (C4_DIGITAL_AUDIO, 'REPEAT', { ROOM_ID = roomId, REPEAT = ((thisQ.REPEAT and 1) or 0), })
+				local params = {
+					ROOM_ID = roomId,
+					REPEAT = ((thisQ.REPEAT and 1) or 0),
+				}
+				C4:SendToDevice (C4_DIGITAL_AUDIO, 'REPEAT', params)
 			end
 		end
 		UpdateQueue (qId, { suppressList = true, })
@@ -1010,7 +1022,11 @@ function QueueClearRepeat (qId)
 			local roomId = GetRoomMapByQueueID (qId) [1]
 			if (roomId) then
 				SetNextTrackURL ('', roomId)
-				C4:SendToDevice (C4_DIGITAL_AUDIO, 'REPEAT', { ROOM_ID = roomId, REPEAT = ((thisQ.REPEAT and 1) or 0), })
+				local params = {
+					ROOM_ID = roomId,
+					REPEAT = ((thisQ.REPEAT and 1) or 0),
+				}
+				C4:SendToDevice (C4_DIGITAL_AUDIO, 'REPEAT', params)
 			end
 		end
 		UpdateQueue (qId, { suppressList = true, })
