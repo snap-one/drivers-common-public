@@ -1457,7 +1457,7 @@ function JoinRoomToSession (roomIds, qId)
 		end
 	end
 
-	local roomIds = ParseRoomIds (roomIds)
+	local roomIds, firstRoomId = ParseRoomIds (roomIds)
 
 	local sessionQueue = GetRoomMapByQueueID (qId)
 
