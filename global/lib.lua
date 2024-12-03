@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 48
+COMMON_LIB_VER = 49
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -170,6 +170,30 @@ end
 
 function gettext (text)
 	return (text)
+end
+
+function getvartext (str, vars)
+	local escape = function (s)
+		s = tostring (s)
+		local ret = s:gsub ('\\', '\\\\'):gsub ('"', '\\"')
+		return ret
+	end
+
+	local ret = {
+		'#!"',
+		escape (str),
+		'"',
+	}
+	if (type (vars) == 'table') then
+		for var, value in pairs (vars) do
+			table.insert (ret, ';')
+			table.insert (ret, var)
+			table.insert (ret, '="')
+			table.insert (ret, escape (value))
+			table.insert (ret, '"')
+		end
+	end
+	return table.concat (ret)
 end
 
 function Print (data)
