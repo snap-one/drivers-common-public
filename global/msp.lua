@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 116
+COMMON_MSP_VER = 117
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -10,10 +10,6 @@ require ('drivers-common-public.global.timer')
 require ('drivers-common-public.global.url')
 
 Metrics = require ('drivers-common-public.module.metrics')
-
-function JSON:assert()
-	-- We don't want the JSON library to assert but rather return nil in case of parsing errors
-end
 
 do	--Globals
 	Navigators = Navigators or {}
