@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 50
+COMMON_LIB_VER = 51
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -91,6 +91,7 @@ do -- Set common var IDs
 end
 
 do -- LOCALE FIXING FOR tostring AND tonumber
+	---@diagnostic disable: lowercase-global
 	if (not tostring_native) then
 		tostring_native = tostring
 	end
@@ -141,8 +142,10 @@ do -- LOCALE FIXING FOR tostring AND tonumber
 	if (LOCALE_USES_COMMA_DECIMAL_SEPARATORS) then
 		tonumber = tonumber_expect_comma
 	end
+	---@diagnostic enable: lowercase-global
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function dbg (strDebugText, ...)
 	if (DEBUGPRINT) then
 		local t, ms
@@ -161,6 +164,7 @@ function dbg (strDebugText, ...)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function dbgdump (strDebugText, ...)
 	if (DEBUGPRINT) then
 		hexdump (strDebugText or '')
@@ -168,10 +172,12 @@ function dbgdump (strDebugText, ...)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function gettext (text)
 	return (text)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function getvartext (str, vars)
 	local escape = function (s)
 		s = tostring (s)
@@ -700,13 +706,16 @@ function ConstructJWT (payload, secret, alg)
 end
 
 function RefreshNavs ()
+	local onConnect = function (client)
+		client:Write ('<c4soap name="PIP" async="1"></c4soap>\0')
+		client:Close ()
+	end
+	local onError = function (client)
+		client:Close ()
+	end
 	local cli = C4:CreateTCPClient ()
-		:OnConnect (function ()
-			client:Write ('<c4soap name="PIP" async="1"></c4soap>\0'):Close ()
-		end)
-		:OnError (function ()
-			client:Close ()
-		end)
+		:OnConnect (onConnect)
+		:OnError (onError)
 
 	cli:Connect ('127.0.0.1', 5020)
 end
@@ -1208,6 +1217,7 @@ function GetTableSize (t)
 	return size
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function uint16To2Bytes (uint16, isLittleEndian)
 	local b1, b2
 
@@ -1221,6 +1231,7 @@ function uint16To2Bytes (uint16, isLittleEndian)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function uint32To4Bytes (uint32, isLittleEndian)
 	local b1, b2, b3, b4
 
@@ -1277,7 +1288,7 @@ function GetTruthy (value, emptyValueIsTrue)
 			ret = false
 		end
 	elseif (type (value) == 'table') then
-		if (not emptyValueIsTrue and next (value == 'nil')) then
+		if (not emptyValueIsTrue and next (value) == 'nil') then
 			ret = false
 		end
 	elseif (type (value) == 'nil') then
