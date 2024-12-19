@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 31
+AUTH_CODE_GRANT_VER = 32
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -500,7 +500,7 @@ function oauth:urlDo (method, url, data, headers, callback, context)
 end
 
 function oauth:urlGet (url, headers, callback, context)
-	self:urlDo ('GET', url, data, headers, callback, context)
+	self:urlDo ('GET', url, nil, headers, callback, context)
 end
 
 function oauth:urlPost (url, data, headers, callback, context)
@@ -512,7 +512,7 @@ function oauth:urlPut (url, data, headers, callback, context)
 end
 
 function oauth:urlDelete (url, headers, callback, context)
-	self:urlDo ('DELETE', url, data, headers, callback, context)
+	self:urlDo ('DELETE', url, nil, headers, callback, context)
 end
 
 function oauth:urlCustom (url, method, data, headers, callback, context)
