@@ -1,6 +1,6 @@
--- Copyright 2021 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 7
+COMMON_METRICS_VER = 8
 
 local Metrics = {
 }
@@ -52,7 +52,7 @@ function Metrics:new (group, version, identifier)
 		table.insert (namespace, 1, 'sandbox')
 	end
 
-	namespace = table.concat (namespace, '.')
+	local namespace = table.concat (namespace, '.')
 
 	if (Metrics.NameSpaces and Metrics.NameSpaces [namespace]) then
 		local metric = Metrics.NameSpaces [namespace]
