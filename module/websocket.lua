@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 11
+COMMON_WEBSOCKET_VER = 12
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -168,7 +168,7 @@ function WebSocket:Send (s)
 
 		table.insert (pkt, self:Mask (s, mask))
 
-		pkt = table.concat (pkt)
+		local pkt = table.concat (pkt)
 		if (DEBUG_WEBSOCKET) then
 			local d = {'', 'TX'}
 
@@ -176,7 +176,7 @@ function WebSocket:Send (s)
 			table.insert (d, s)
 			table.insert (d, '')
 
-			d = table.concat (d, '\r\n')
+			local d = table.concat (d, '\r\n')
 
 			print (d)
 		end
@@ -204,7 +204,7 @@ function WebSocket:SetClosedByRemoteFunction (f)
 		local success, ret = pcall (f, websocket)
 		if (success == false) then
 			self.metrics:SetCounter ('Error_ClosedByRemoteCallback')
-			print ('Websocket callback ClosedByRemote error: ', ret, data)
+			print ('Websocket callback ClosedByRemote error: ', ret)
 		end
 	end
 	self.ClosedByRemote = _f
@@ -217,7 +217,7 @@ function WebSocket:SetEstablishedFunction (f)
 		local success, ret = pcall (f, websocket)
 		if (success == false) then
 			self.metrics:SetCounter ('Error_EstablishedCallback')
-			print ('Websocket callback Established error: ', ret, data)
+			print ('Websocket callback Established error: ', ret)
 		end
 	end
 	self.Established = _f
@@ -230,7 +230,7 @@ function WebSocket:SetOfflineFunction (f)
 		local success, ret = pcall (f, websocket)
 		if (success == false) then
 			self.metrics:SetCounter ('Error_OfflineCallback')
-			print ('Websocket callback Offline error: ', ret, data)
+			print ('Websocket callback Offline error: ', ret)
 		end
 	end
 	self.Offline = _f
@@ -301,7 +301,7 @@ function WebSocket:MakeHeaders ()
 
 	table.insert (headers, '\r\n')
 
-	headers = table.concat (headers, '\r\n')
+	local headers = table.concat (headers, '\r\n')
 
 	return headers
 end
@@ -317,6 +317,7 @@ function WebSocket:ParsePacket (strData)
 end
 
 function WebSocket:parseWSPacket ()
+	---@diagnostic disable-next-line: deprecated
 	local _, h1, h2, b1, b2, b3, b4, b5, b6, b7, b8 = string.unpack (self.buf, 'bbbbbbbbbb')
 
 	local final = (bit.band (h1, 0x80) == 0x80)
