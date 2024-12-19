@@ -1,6 +1,6 @@
--- Copyright 2020 Control4 Corporation. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_SSDP_VER = 8
+COMMON_SSDP_VER = 9
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -218,7 +218,7 @@ function SSDP:sendDiscoveryPacket (binding)
 			'',
 		}
 
-		packet = table.concat (packet, '\r\n')
+		local packet = table.concat (packet, '\r\n')
 
 		for i = 1, 3 do
 			C4:SendToNetwork (binding, 1900, packet)
