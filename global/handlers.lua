@@ -3,10 +3,12 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 28
+COMMON_HANDLERS_VER = 29
 
 do -- define globals
 	DEBUG_RFN = false
+	SSDP = SSDP
+	WebSocket = WebSocket
 end
 
 --[[ Inbound Driver Functions:
@@ -292,8 +294,9 @@ function ExecuteCommand (strCommand, tParams)
 
 	local success, ret
 
-	if (EC and EC [strCommand] and type (EC [strCommand]) == 'function') then
-		success, ret = pcall (EC [strCommand], tParams)
+	local ecFunction = Select (EC, strCommand)
+	if (type (ecFunction) == 'function') then
+		success, ret = pcall (ecFunction, tParams)
 	end
 
 	if (success == true) then
@@ -324,8 +327,9 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 
 	local success, ret
 
-	if (OBC and OBC [idBinding] and type (OBC [idBinding]) == 'function') then
-		success, ret = pcall (OBC [idBinding], idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+	local obcFunction = Select (OBC, idBinding)
+	if (type (obcFunction) == 'function') then
+		success, ret = pcall (obcFunction, idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
 	end
 
 	if (success == true) then
@@ -354,8 +358,9 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus)
 
 	local success, ret
 
-	if (OCS and OCS [idBinding] and type (OCS [idBinding]) == 'function') then
-		success, ret = pcall (OCS [idBinding], idBinding, nPort, strStatus)
+	local ocsFunction = Select (OCS, idBinding)
+	if (type (ocsFunction) == 'function') then
+		success, ret = pcall (ocsFunction, idBinding, nPort, strStatus)
 	end
 
 	if (success == true) then
@@ -421,8 +426,9 @@ function OnDeviceEvent (firingDeviceId, eventId)
 
 	local success, ret
 
-	if (ODE and ODE [firingDeviceId] and ODE [firingDeviceId] [eventId] and type (ODE [firingDeviceId] [eventId]) == 'function') then
-		success, ret = pcall (ODE [firingDeviceId] [eventId], firingDeviceId, eventId)
+	local odeFunction = Select (ODE, firingDeviceId, eventId)
+	if (type (odeFunction) == 'function') then
+		success, ret = pcall (odeFunction, firingDeviceId, eventId)
 	end
 
 	if (success == true) then
@@ -483,8 +489,10 @@ function OnPropertyChanged (strProperty)
 
 	local success, ret
 
-	if (OPC and OPC [strProperty] and type (OPC [strProperty]) == 'function') then
-		success, ret = pcall (OPC [strProperty], value)
+	local opcFunction = Select (OPC, strProperty)
+
+	if (type (opcFunction) == 'function') then
+		success, ret = pcall (opcFunction, value)
 	end
 
 	if (success == true) then
@@ -512,11 +520,10 @@ function OnSystemEvent (event)
 
 	local success, ret
 
-	if (OSE) then
-		eventName = string.gsub (eventName, '%s+', '_')
-		if (OSE [eventName] and type (OSE [eventName]) == 'function') then
-			success, ret = pcall (OSE [eventName], event)
-		end
+	local safeEventName = string.gsub (eventName, '%s+', '_')
+	local oseFunction = Select (OSE, safeEventName)
+	if (type (oseFunction) == 'function') then
+		success, ret = pcall (oseFunction, event)
 	end
 
 	if (success == true) then
@@ -527,18 +534,6 @@ function OnSystemEvent (event)
 	elseif (DEBUGPRINT) then
 		print ('Unhandled OnSystemEvent')
 	end
-end
-
-function conformVariable (var)
-	local ret
-	if (type (var) == 'boolean') then
-		ret = (var and '1') or '0'
-	elseif (type (var) ~= 'string') then
-		ret = tostring (var)
-	else
-		ret = var
-	end
-	return ret
 end
 
 function AddVariable (strVariable, strValue, varType, readOnly, hidden)
@@ -560,7 +555,11 @@ function AddVariable (strVariable, strValue, varType, readOnly, hidden)
 		return
 	end
 
-	strValue = conformVariable (strValue)
+	if (type (strValue) == 'boolean') then
+		strValue = (strValue and '1') or '0'
+	elseif (type (strValue) ~= 'string') then
+		strValue = tostring (strValue)
+	end
 
 	if (Variables [strVariable]) then
 		SetVariable (strVariable, strValue)
@@ -591,7 +590,11 @@ function SetVariable (strVariable, strValue, notifyChange)
 		return
 	end
 
-	strValue = conformVariable (strValue)
+	if (type (strValue) == 'boolean') then
+		strValue = (strValue and '1') or '0'
+	elseif (type (strValue) ~= 'string') then
+		strValue = tostring (strValue)
+	end
 
 	if (Variables [strVariable] ~= strValue) then
 		C4:SetVariable (strVariable, strValue)
@@ -622,10 +625,13 @@ function OnVariableChanged (strVariable, variableId)
 
 	local success, ret
 
-	if (OVC and OVC [strVariable] and type (OVC [strVariable]) == 'function') then
-		success, ret = pcall (OVC [strVariable], value)
-	elseif (OVC and OVC [variableId] and type (OVC [variableId]) == 'function') then
-		success, ret = pcall (OVC [variableId], value)
+	local ovcStrVarFunction = Select (OVC, strVariable)
+	local ovcVarIdFunction = Select (OVC, variableId)
+
+	if (type (ovcStrVarFunction) == 'function') then
+		success, ret = pcall (ovcStrVarFunction, value)
+	elseif (type (ovcVarIdFunction) == 'function') then
+		success, ret = pcall (ovcVarIdFunction, value)
 	end
 
 	if (success == true) then
@@ -737,8 +743,10 @@ function ReceivedFromNetwork (idBinding, nPort, strData)
 
 	local success, ret
 
-	if (RFN and RFN [idBinding] and type (RFN [idBinding]) == 'function') then
-		success, ret = pcall (RFN [idBinding], idBinding, nPort, strData)
+	local rfnFunction = Select (RFN, idBinding)
+
+	if (type (rfnFunction) == 'function') then
+		success, ret = pcall (rfnFunction, idBinding, nPort, strData)
 	end
 
 	if (success == true) then
@@ -775,10 +783,13 @@ function ReceivedFromProxy (idBinding, strCommand, tParams)
 
 	local success, ret
 
-	if (RFP and RFP [strCommand] and type (RFP [strCommand]) == 'function') then
-		success, ret = pcall (RFP [strCommand], idBinding, strCommand, tParams, args)
-	elseif (RFP and RFP [idBinding] and type (RFP [idBinding]) == 'function') then
-		success, ret = pcall (RFP [idBinding], idBinding, strCommand, tParams, args)
+	local rfpCommandFunction = Select (RFP, strCommand)
+	local rfpBindingFunction = Select (RFP, idBinding)
+
+	if (type (rfpCommandFunction) == 'function') then
+		success, ret = pcall (rfpCommandFunction, idBinding, strCommand, tParams, args)
+	elseif (type (rfpBindingFunction) == 'function') then
+		success, ret = pcall (rfpBindingFunction, idBinding, strCommand, tParams, args)
 	end
 
 	if (success == true) then
@@ -806,8 +817,9 @@ function TestCondition (strConditionName, tParams)
 
 	local success, ret
 
-	if (TC and TC [strConditionName] and type (TC [strConditionName]) == 'function') then
-		success, ret = pcall (TC [strConditionName], strConditionName, tParams)
+	local tcFunction = Select (TC, strConditionName)
+	if (type (tcFunction) == 'function') then
+		success, ret = pcall (tcFunction, strConditionName, tParams)
 	end
 
 	if (success == true) then
@@ -835,8 +847,9 @@ function UIRequest (strCommand, tParams)
 
 	local success, ret
 
-	if (UIR and UIR [strCommand] and type (UIR [strCommand]) == 'function') then
-		success, ret = pcall (UIR [strCommand], tParams)
+	local uirFunction = Select (UIR [strCommand])
+	if (type (uirFunction) == 'function') then
+		success, ret = pcall (uirFunction, tParams)
 	end
 
 	if (success == true) then

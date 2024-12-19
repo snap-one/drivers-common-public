@@ -20,6 +20,18 @@ do	--Globals
 	DEBUG_URL = DEBUG_URL or false
 end
 
+do -- Globals defined by importing drivers
+	-- functions
+
+	--tables
+	DEFAULT_URL_ARGS = DEFAULT_URL_ARGS
+	APIBase = APIBase
+
+	--string or bool
+end
+
+
+
 do	--Setup Metrics
 	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
@@ -124,7 +136,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 			table.insert (url, '?')
 		end
 
-		urlargs = table.concat (urlargs, '&')
+		local urlargs = table.concat (urlargs, '&')
 		table.insert (url, urlargs)
 	end
 
@@ -133,7 +145,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 		table.insert (url, fragmentPart)
 	end
 
-	url = table.concat (url)
+	local url = table.concat (url)
 
 	return (url)
 end
@@ -291,7 +303,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		table.insert (d, strData)
 		table.insert (d, '-:PAYLOAD_ENDS:-')
 		table.insert (d, '---')
-		d = table.concat (d, '\r\n')
+		local d = table.concat (d, '\r\n')
 
 		print (d)
 
@@ -337,6 +349,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		MetricsURL:SetCounter ('RX_' .. info.METHOD)
 	end
 
+	local success, ret
 	if (info.CALLBACK and type (info.CALLBACK) == 'function') then
 		success, ret = pcall (info.CALLBACK, strError, responseCode, tHeaders, data, info.CONTEXT, info.URL)
 	end
@@ -421,7 +434,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 		table.insert (d, '-:PAYLOAD_ENDS:-')
 		table.insert (d, '---')
 
-		d = table.concat (d, '\r\n')
+		local d = table.concat (d, '\r\n')
 
 		print (d)
 
@@ -547,7 +560,7 @@ end
 
 function urlGet (url, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_GET')
-	urlDo ('GET', url, data, headers, callback, context, options)
+	urlDo ('GET', url, nil, headers, callback, context, options)
 end
 
 function urlPost (url, data, headers, callback, context, options)
@@ -562,7 +575,7 @@ end
 
 function urlDelete (url, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_DELETE')
-	urlDo ('DELETE', url, data, headers, callback, context, options)
+	urlDo ('DELETE', url, nil, headers, callback, context, options)
 end
 
 function urlCustom (url, method, data, headers, callback, context, options)

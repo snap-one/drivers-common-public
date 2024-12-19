@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 49
+COMMON_LIB_VER = 50
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -208,7 +208,7 @@ end
 
 function CopyTable (t, shallowCopy)
 	if (type (t) ~= 'table') then
-		return
+		return nil
 	end
 
 	local seenTables = {}
@@ -465,7 +465,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 				XMLEncode (tostring (v)),
 				'"',
 			}
-			a = table.concat (a)
+			local a = table.concat (a)
 			table.insert (attribs, a)
 		end
 		strName = table.concat (attribs, ' ')
@@ -530,7 +530,7 @@ end
 function CreateXML (item, xml)
 	if (type (item) ~= 'table') then
 		print ('Cannot CreateXML on non-table')
-		return
+		return nil
 	end
 
 	local isRoot
@@ -602,37 +602,52 @@ end
 	local t8 = '<a>b</a><tag testattrib="testval" testattrib2="test val" /><a>b</a>' -- '', , {testattrib = 'testval', testattrib2 = 'test val'}
 --]]
 
-function XMLCapture (xmlString, tag)
+function XMLCapture (xmlString, tag, init)
 	if (type (xmlString) ~= 'string') then
 		print ('XMLCapture error: xmlString not string:', tostring (xmlString))
-		return
+		return nil, nil, nil, nil
 	end
 	if (type (tag) ~= 'string') then
 		print ('XMLCapture error: tag not string:', tostring (tag))
-		return
+		return nil, nil, nil, nil
+	end
+	if (type (init) ~= 'number') then
+		init = nil
 	end
 	-- plain tag
-	local tagContents = string.match (xmlString, '<' .. tag .. '>(.-)</' .. tag .. '>')
+	local s, e, tagContents = string.find (xmlString, '<' .. tag .. '>(.-)</' .. tag .. '>', init)
 	if (tagContents) then
-		return tagContents, nil
+		return tagContents, nil, s, e
 	end
 
 	-- tag with attributes
-	local attributes, tagContents = string.match (xmlString, '<' .. tag .. '%s+(%S.-)>(.-)</' .. tag .. '>')
+	local s, e, attributes, tagContents = string.find (xmlString, '<' .. tag .. '%s+(%S.-)>(.-)</' .. tag .. '>', init)
 	if (attributes and tagContents) then
-		return tagContents, attributes
+		return tagContents, attributes, s, e
 	end
 
 	-- self closing tag
-	local selfClosed = string.match (xmlString, '<' .. tag .. '%s-/>')
+	local s, e, selfClosed = string.find (xmlString, '<' .. tag .. '%s-/>', init)
 	if (selfClosed) then
-		return '', nil
+		return '', nil, s, e
 	end
 
 	-- self closing tag with attributes
-	local attributes = string.match (xmlString, '<' .. tag .. '%s+(%S.-)%s-/>')
+	local s, e, attributes = string.find (xmlString, '<' .. tag .. '%s+(%S.-)%s-/>', init)
 	if (attributes) then
-		return '', attributes
+		return '', attributes, s, e
+	end
+	return nil, nil, nil, nil
+end
+
+function XMLgCapture (xmlString, tag)
+	local init = 0
+	return function ()
+		local tagContents, attributes, s, e = XMLCapture (xmlString, tag, init)
+		if (e) then
+			init = e
+		end
+		return tagContents, attributes, s, e
 	end
 end
 
@@ -672,7 +687,11 @@ function ConstructJWT (payload, secret, alg)
 			data_encoding = 'NONE',
 		}
 		signature = C4:HMAC (digest, secret, data, options)
-		signature = signature:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+		if (signature) then
+			signature = signature:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+		else
+			signature = ''
+		end
 	end
 
 	data = data .. '.' .. signature
@@ -682,10 +701,10 @@ end
 
 function RefreshNavs ()
 	local cli = C4:CreateTCPClient ()
-		:OnConnect (function (client)
+		:OnConnect (function ()
 			client:Write ('<c4soap name="PIP" async="1"></c4soap>\0'):Close ()
 		end)
-		:OnError (function (client)
+		:OnError (function ()
 			client:Close ()
 		end)
 
@@ -783,7 +802,7 @@ function SaltedEncrypt (key, plaintext)
 		local randomChar = string.char (math.random (0, 255))
 		table.insert (prepend_random, randomChar)
 	end
-	prepend_random = table.concat (prepend_random)
+	local prepend_random = table.concat (prepend_random)
 
 	local data = prepend_random .. plaintext
 
@@ -926,7 +945,7 @@ function GetProject ()
 
 	table.insert (p, '}')
 
-	p = table.concat (p, '\r\n')
+	local p = table.concat (p, '\r\n')
 
 	p = string.gsub (p, ',%s+%]', '\r\n%]')
 	p = string.gsub (p, ',%s+%}', '\r\n%}')
@@ -1029,7 +1048,7 @@ function GetRandomString (length, alphaFirst)
 		local char = string.sub (allowed, random, random)
 		table.insert (s, char)
 	end
-	s = table.concat (s)
+	local s = table.concat (s)
 	return s
 end
 
