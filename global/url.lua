@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 25
+COMMON_URL_VER = 26
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -362,6 +362,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlDo (method, url, data, headers, callback, context, options)
 	local info = {}
 	if (type (callback) == 'function') then
@@ -558,26 +559,31 @@ function urlDo (method, url, data, headers, callback, context, options)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlGet (url, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_GET')
 	urlDo ('GET', url, nil, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlPost (url, data, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_POST')
 	urlDo ('POST', url, data, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlPut (url, data, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_PUT')
 	urlDo ('PUT', url, data, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlDelete (url, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_DELETE')
 	urlDo ('DELETE', url, nil, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlCustom (url, method, data, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_' .. method)
 	urlDo (method, url, data, headers, callback, context, options)
