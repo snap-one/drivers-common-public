@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 120
+COMMON_MSP_VER = 121
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -162,16 +162,16 @@ function OnDriverLateInit (driverInitType)
 	C4:urlSetTimeout (10)
 
 	for _, var in ipairs (UserVariables or {}) do
-		local default
+		local init
 		if (var.default ~= nil) then
-			default = var.default
+			init = var.default
 		else
 			if (var.varType == 'STRING') then
-				default = ''
+				init = ''
 			elseif (var.varType == 'BOOL') then
-				default = '0'
+				init = '0'
 			elseif (var.varType == 'NUMBER') then
-				default = 0
+				init = 0
 			end
 		end
 		local readOnly = true
@@ -182,7 +182,7 @@ function OnDriverLateInit (driverInitType)
 		if (type (var.hidden) == 'boolean') then
 			hidden = var.hidden
 		end
-		C4:AddVariable (var.name, default, var.varType, readOnly, hidden)
+		C4:AddVariable (var.name, init, var.varType, readOnly, hidden)
 	end
 
 	C4_DIGITAL_AUDIO = next (C4:GetDevicesByC4iName ('control4_digitalaudio.c4i'))
@@ -345,7 +345,6 @@ function OWVC.ParseRoomMapInfo (idDevice, idVariable, strValue)
 
 		local qId = tonumber (XMLCapture (queue, 'id'))
 		if (qId) then
-			print (queue)
 			local source = tonumber (XMLCapture (queue, 'device_id'))
 			local state = XMLCapture (queue, 'state')
 			local ownerId = tonumber (XMLCapture (queue, 'owner'))
@@ -1444,8 +1443,8 @@ function GetNowPlayingTagsByQueue (qId)
 			nowPlayingTags.can_thumbs_down_cancel = 'false'
 
 			if (actions_list) then
-				for i = #nowPlayingTags.actions_list, 1, -1 do
-					local action = nowPlayingTags.actions_list [i]
+				for i = #actions_list, 1, -1 do
+					local action = actions_list [i]
 					if (CUSTOM_DASH_ACTIONS [action]) then
 						table.remove (actions_list, i)
 					end
@@ -1453,7 +1452,7 @@ function GetNowPlayingTagsByQueue (qId)
 			end
 		end
 
-		if (nowPlayingTags.actions_list) then
+		if (actions_list) then
 			nowPlayingTags.actions_list = table.concat (actions_list, ' ')
 		end
 
