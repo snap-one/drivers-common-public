@@ -40,8 +40,10 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 
 	if (not (host and port)) then
 		host = hostport
-		if (protocol == 'ws') then port = 80
-		elseif (protocol == 'wss') then port = 443
+		if (protocol == 'ws') then
+			port = 80
+		elseif (protocol == 'wss') then
+			port = 443
 		end
 	end
 
@@ -170,7 +172,7 @@ function WebSocket:Send (s)
 
 		local pkt = table.concat (pkt)
 		if (DEBUG_WEBSOCKET) then
-			local d = {'', 'TX'}
+			local d = { '', 'TX', }
 
 			table.insert (d, '')
 			table.insert (d, s)
@@ -317,6 +319,7 @@ function WebSocket:ParsePacket (strData)
 end
 
 function WebSocket:parseWSPacket ()
+	--diagnostic disables are because Driverworks embeds lpack which has different formats to Lua5.3 string.pack/unpack
 	---@diagnostic disable-next-line: deprecated
 	local _, h1, h2, b1, b2, b3, b4, b5, b6, b7, b8 = string.unpack (self.buf, 'bbbbbbbbbb')
 
@@ -326,8 +329,10 @@ function WebSocket:parseWSPacket ()
 	local rsv3 = (bit.band (h1, 0x10) == 0x10)
 	local opcode = bit.band (h1, 0x0F)
 
+	---@diagnostic disable-next-line: param-type-mismatch
 	local masked = (bit.band (h2, 0x80) == 0x80)
 	local mask
+	---@diagnostic disable-next-line: param-type-mismatch
 	local len = bit.band (h2, 0x7F)
 
 	local msglen = 0
@@ -384,19 +389,16 @@ function WebSocket:parseWSPacket ()
 			if (self.ClosedByRemote) then
 				self:ClosedByRemote ()
 			end
-
 		elseif (opcode == 0x09) then -- ping control frame
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PING')
 			end
 			self:Pong ()
-
 		elseif (opcode == 0x0A) then -- pong control frame
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PONG')
 			end
 			self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
-
 		elseif (opcode == 0x00) then -- continuation frame
 			if (not self.fragment) then
 				self.metrics:SetCounter ('Error_FramesOutOfOrder')
@@ -405,7 +407,6 @@ function WebSocket:parseWSPacket ()
 				return
 			end
 			self.fragment = self.fragment .. thisFragment
-
 		elseif (opcode == 0x01 or opcode == 0x02) then -- non-control frame, beginning of fragment
 			self.fragment = thisFragment
 		end
@@ -415,13 +416,13 @@ function WebSocket:parseWSPacket ()
 			self.fragment = nil
 
 			if (DEBUG_WEBSOCKET) then
-				local d = {'', 'RX'}
+				local d = { '', 'RX', }
 
 				table.insert (d, '')
 				table.insert (d, data)
 				table.insert (d, '')
 
-				d = table.concat (d, '\r\n')
+				local d = table.concat (d, '\r\n')
 
 				print (d)
 			end
@@ -452,12 +453,11 @@ function WebSocket:parseHTTPPacket ()
 	if (EOH and headers ['SEC-WEBSOCKET-ACCEPT']) then
 		self.buf = string.sub (self.buf, EOH + 4)
 		local check = self.key .. '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-		local hash = C4:Hash ('sha1', check, {['return_encoding'] = 'BASE64'})
+		local hash = C4:Hash ('sha1', check, { ['return_encoding'] = 'BASE64', })
 
 		if (headers ['SEC-WEBSOCKET-ACCEPT'] == hash and
-			string.lower (headers ['UPGRADE']) == 'websocket' and
-			string.lower (headers ['CONNECTION']) == 'upgrade') then
-
+				string.lower (headers ['UPGRADE']) == 'websocket' and
+				string.lower (headers ['CONNECTION']) == 'upgrade') then
 			print ('WS ' .. self.url .. ' running')
 
 			self.running = true
@@ -558,7 +558,7 @@ function WebSocket:Mask (s, mask)
 		table.insert (packet, char)
 	end
 
-	packet = table.concat (packet)
+	local packet = table.concat (packet)
 	return (packet)
 end
 

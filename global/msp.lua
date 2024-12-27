@@ -246,6 +246,7 @@ function OnDriverLateInit (driverInitType)
 	end
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function OPC.Debug_Mode (value)
 	CancelTimer ('DEBUGPRINT')
 	DEBUGPRINT = (value == 'On')
@@ -259,6 +260,7 @@ function OPC.Debug_Mode (value)
 	end
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function OPC.Driver_Version (value)
 	local version = C4:GetDriverConfigInfo ('version')
 	if (not (IN_PRODUCTION)) then
@@ -282,6 +284,7 @@ function OPC.Tag_Explicit_Tracks (value)
 	TAG_EXPLICIT_TRACKS = (value == 'On')
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function OSE.OnPIP (event)
 	PersistData.VERSION = C4:GetDriverConfigInfo ('version')
 	PersistData.LastRefreshNavTime = os.time ()

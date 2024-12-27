@@ -188,10 +188,10 @@ end
 
 function SSDP:disconnect ()
 	if (self.mcBinding) then
-		C4:NetDisconnect (self.mcBinding, 1900, 'UDP')
+		C4:NetDisconnect (self.mcBinding, 1900)
 	end
 	if (self.bcBinding) then
-		C4:NetDisconnect (self.bcBinding, 1900, 'UDP')
+		C4:NetDisconnect (self.bcBinding, 1900)
 	end
 end
 

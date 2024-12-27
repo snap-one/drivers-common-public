@@ -73,6 +73,7 @@ function Metrics:new (group, version, identifier)
 end
 
 function Metrics:SetCounter (key, value, sampleRate)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdCounter) then
 		return
 	end
@@ -98,6 +99,7 @@ function Metrics:SetCounter (key, value, sampleRate)
 end
 
 function Metrics:SetGauge (key, value)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdGauge) then
 		return
 	end
@@ -119,6 +121,7 @@ function Metrics:SetGauge (key, value)
 end
 
 function Metrics:AdjustGauge (key, value)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdAdjustGauge) then
 		return
 	end
@@ -140,6 +143,7 @@ function Metrics:AdjustGauge (key, value)
 end
 
 function Metrics:SetTimer (key, value)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdTimer) then
 		return
 	end
@@ -161,6 +165,7 @@ function Metrics:SetTimer (key, value)
 end
 
 function Metrics:SetString (key, value)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdString) then
 		return
 	end
@@ -184,6 +189,7 @@ function Metrics:SetString (key, value)
 end
 
 function Metrics:SetJSON (key, value)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdJSONObject) then
 		return
 	end
@@ -207,6 +213,7 @@ function Metrics:SetJSON (key, value)
 end
 
 function Metrics:SetIncrementingMeter (key, value)
+---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdIncrementMeter) then
 		return
 	end
