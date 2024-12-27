@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 52
+COMMON_LIB_VER = 53
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1212,10 +1212,12 @@ function Select (data, ...)
 
 	for i = 1, args.n do
 		local index = args [i]
-		if (index == nil or ret [index] == nil) then
+		if (index == next) then
+			local _
+			_, ret = next (ret)
+		elseif (index == nil or ret [index] == nil) then
 			return nil
-		end
-		if (ret [index] ~= nil) then
+		else
 			ret = ret [index]
 		end
 	end
