@@ -295,6 +295,7 @@ function ExecuteCommand (strCommand, tParams)
 	local success, ret
 
 	local ecFunction = Select (EC, strCommand)
+
 	if (type (ecFunction) == 'function') then
 		success, ret = pcall (ecFunction, tParams)
 	end
@@ -328,6 +329,7 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 	local success, ret
 
 	local obcFunction = Select (OBC, idBinding)
+
 	if (type (obcFunction) == 'function') then
 		success, ret = pcall (obcFunction, idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
 	end
@@ -359,6 +361,7 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus)
 	local success, ret
 
 	local ocsFunction = Select (OCS, idBinding)
+
 	if (type (ocsFunction) == 'function') then
 		success, ret = pcall (ocsFunction, idBinding, nPort, strStatus)
 	end
@@ -427,6 +430,7 @@ function OnDeviceEvent (firingDeviceId, eventId)
 	local success, ret
 
 	local odeFunction = Select (ODE, firingDeviceId, eventId)
+
 	if (type (odeFunction) == 'function') then
 		success, ret = pcall (odeFunction, firingDeviceId, eventId)
 	end
@@ -522,6 +526,7 @@ function OnSystemEvent (event)
 
 	local safeEventName = string.gsub (eventName, '%s+', '_')
 	local oseFunction = Select (OSE, safeEventName)
+
 	if (type (oseFunction) == 'function') then
 		success, ret = pcall (oseFunction, event)
 	end
@@ -818,6 +823,7 @@ function TestCondition (strConditionName, tParams)
 	local success, ret
 
 	local tcFunction = Select (TC, strConditionName)
+
 	if (type (tcFunction) == 'function') then
 		success, ret = pcall (tcFunction, strConditionName, tParams)
 	end
@@ -848,6 +854,7 @@ function UIRequest (strCommand, tParams)
 	local success, ret
 
 	local uirFunction = Select (UIR [strCommand])
+
 	if (type (uirFunction) == 'function') then
 		success, ret = pcall (uirFunction, tParams)
 	end
