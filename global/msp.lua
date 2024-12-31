@@ -222,6 +222,16 @@ function OnDriverLateInit (driverInitType)
 	SUPPORTS_DEFAULT_AND_ACTIONS = VersionCheck ('3.0.0')
 	SUPPORTS_SEEK_ABSOLUTE = VersionCheck ('3.3.1')
 
+	SUPPORTS_FAVORITE_TO_ROOM = VersionCheck ('3.0,0')
+	SUPPORTS_FAVORITE_TO_HOME = VersionCheck ('4.0.0')
+
+	C4_FAVORITE_STRING = ''
+	if (SUPPORTS_FAVORITE_TO_HOME) then
+		C4_FAVORITE_STRING = 'FavoriteToRoom FavoriteToHome'
+	elseif (SUPPORTS_FAVORITE_TO_ROOM) then
+		C4_FAVORITE_STRING = 'FavoriteToRoom'
+	end
+
 	HomeTabId = 'Library'
 	HomeScreenId = 'LibraryScreen'
 
