@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 119
+COMMON_MSP_VER = 121
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -10,10 +10,6 @@ require ('drivers-common-public.global.timer')
 require ('drivers-common-public.global.url')
 
 Metrics = require ('drivers-common-public.module.metrics')
-
-function JSON:assert ()
-	-- We don't want the JSON library to assert but rather return nil in case of parsing errors
-end
 
 do --Globals
 	Navigators = Navigators or {}
@@ -25,8 +21,6 @@ do --Globals
 	RoomSettings = RoomSettings or {}
 
 	Navigator = Navigator or {}
-
-	-- NavigatorSerializedArgs = {}
 
 	MAX_SEARCH = 20
 
@@ -68,6 +62,24 @@ do --Globals
 
 	DEBUG_DATA_RECEIVED = false
 	DEBUG_SEND_EVENT = false
+end
+
+do -- Globals defined by importing drivers
+	-- functions
+	OnDriverInitTasks = OnDriverInitTasks
+	OnDriverLateInitTasks = OnDriverLateInitTasks
+	OnDriverDestroyedTasks = OnDriverDestroyedTasks
+	RefreshNavTasks = RefreshNavTasks
+	Login = Login
+	Logout = Logout
+
+	--tables
+	NavigatorSerializedArgs = NavigatorSerializedArgs
+	DEFAULT_QUEUE_ACTIONS_LIST = DEFAULT_QUEUE_ACTIONS_LIST
+	APIAuth = APIAuth
+
+	--string or bool
+	LOGGED_IN = LOGGED_IN
 end
 
 do -- define proxy / binding IDs
@@ -121,7 +133,7 @@ function OnDriverLateInit (driverInitType)
 		end
 	end
 	if (minimumVersion and not (VersionCheck (minimumVersion))) then
-		local errtext = {
+		local err = {
 			'DRIVER DISABLED - ',
 			C4:GetDriverConfigInfo ('model'),
 			'driver',
@@ -131,9 +143,9 @@ function OnDriverLateInit (driverInitType)
 			': current C4 OS is',
 			C4:GetVersionInfo ().version,
 		}
-		errtext = table.concat (errtext, ' ')
+		local err = table.concat (err, ' ')
 
-		C4:UpdateProperty ('Driver Version', errtext)
+		C4:UpdateProperty ('Driver Version', err)
 		for property, _ in pairs (Properties) do
 			C4:SetPropertyAttribs (property, 1)
 		end
@@ -150,14 +162,16 @@ function OnDriverLateInit (driverInitType)
 	C4:urlSetTimeout (10)
 
 	for _, var in ipairs (UserVariables or {}) do
-		local default = var.default
-		if (default == nil) then
+		local init
+		if (var.default ~= nil) then
+			init = var.default
+		else
 			if (var.varType == 'STRING') then
-				default = ''
+				init = ''
 			elseif (var.varType == 'BOOL') then
-				default = '0'
+				init = '0'
 			elseif (var.varType == 'NUMBER') then
-				default = 0
+				init = 0
 			end
 		end
 		local readOnly = true
@@ -168,7 +182,7 @@ function OnDriverLateInit (driverInitType)
 		if (type (var.hidden) == 'boolean') then
 			hidden = var.hidden
 		end
-		C4:AddVariable (var.name, default, var.varType, readOnly, hidden)
+		C4:AddVariable (var.name, init, var.varType, readOnly, hidden)
 	end
 
 	C4_DIGITAL_AUDIO = next (C4:GetDevicesByC4iName ('control4_digitalaudio.c4i'))
@@ -185,11 +199,9 @@ function OnDriverLateInit (driverInitType)
 	-- update security on stored password
 	if (PersistData.AuthSettings.password) then
 		local _update = function ()
-			local password = C4:Decrypt ('AES-256-ECB', C4:GetDriverConfigInfo ('model'), nil,
-				PersistData.AuthSettings.password, AES_DEC_DEFAULTS)
+			local password = C4:Decrypt ('AES-256-ECB', C4:GetDriverConfigInfo ('model'), nil, PersistData.AuthSettings.password, AES_DEC_DEFAULTS)
 			if (password) then
-				local enc_password = C4:Encrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, password,
-					AES_ENC_DEFAULTS)
+				local enc_password = C4:Encrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, password, AES_ENC_DEFAULTS)
 				if (enc_password) then
 					PersistData.AuthSettings.password = enc_password
 				end
@@ -209,6 +221,9 @@ function OnDriverLateInit (driverInitType)
 	SUPPORTS_CUSTOM_DASH = VersionCheck ('3.0.0')
 	SUPPORTS_DEFAULT_AND_ACTIONS = VersionCheck ('3.0.0')
 	SUPPORTS_SEEK_ABSOLUTE = VersionCheck ('3.3.1')
+
+	SUPPORTS_FAVORITE_TO_ROOM = VersionCheck ('3.0,0')
+	SUPPORTS_FAVORITE_TO_HOME = VersionCheck ('4.0.0')
 
 	HomeTabId = 'Library'
 	HomeScreenId = 'LibraryScreen'
@@ -234,6 +249,7 @@ function OnDriverLateInit (driverInitType)
 	end
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function OPC.Debug_Mode (value)
 	CancelTimer ('DEBUGPRINT')
 	DEBUGPRINT = (value == 'On')
@@ -247,6 +263,7 @@ function OPC.Debug_Mode (value)
 	end
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function OPC.Driver_Version (value)
 	local version = C4:GetDriverConfigInfo ('version')
 	if (not (IN_PRODUCTION)) then
@@ -270,6 +287,7 @@ function OPC.Tag_Explicit_Tracks (value)
 	TAG_EXPLICIT_TRACKS = (value == 'On')
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function OSE.OnPIP (event)
 	PersistData.VERSION = C4:GetDriverConfigInfo ('version')
 	PersistData.LastRefreshNavTime = os.time ()
@@ -291,20 +309,29 @@ end
 
 function OWVC.ParseRoomIdRoute (idDevice, idVariable, strValue)
 	local roomId = tonumber (idDevice)
+	if (roomId == nil) then
+		return
+	end
 	RoomIDRoutes [roomId] = {}
-	for id in string.gmatch (strValue or '', '<id>(.-)</id>') do
+	for id in XMLgCapture (strValue, 'id') do
 		table.insert (RoomIDRoutes [roomId], tonumber (id))
 	end
 end
 
 function OWVC.ParseRoomIdSource (idDevice, idVariable, strValue)
 	local roomId = tonumber (idDevice)
+	if (roomId == nil) then
+		return
+	end
 	local deviceId = tonumber (strValue) or 0
 	RoomIDSources [roomId] = deviceId
 end
 
 function OWVC.ParseRoomIdPlayingSource (idDevice, idVariable, strValue)
 	local roomId = tonumber (idDevice)
+	if (roomId == nil) then
+		return
+	end
 	local deviceId = tonumber (strValue) or 0
 	RoomIDPlayingSources [roomId] = deviceId
 
@@ -316,53 +343,55 @@ function OWVC.ParseRoomIdPlayingSource (idDevice, idVariable, strValue)
 end
 
 function OWVC.ParseRoomMapInfo (idDevice, idVariable, strValue)
-	local info = strValue or ''
 	QueueMap = {}
 	RoomQIDMap = {}
 
-	for audioQueueInfo in string.gmatch (info, '<audioQueueInfo>(.-)</audioQueueInfo>') do
-		local queue = string.match (audioQueueInfo, '<queue>(.-)</queue>')
+	for audioQueueInfo in XMLgCapture (strValue, 'audioQueueInfo') do
+		local queue = XMLCapture (audioQueueInfo, 'queue')
 
-		local qId = tonumber (string.match (queue, '<id>(.-)</id>'))
+		local qId = tonumber (XMLCapture (queue, 'id'))
+		if (qId) then
+			local source = tonumber (XMLCapture (queue, 'device_id'))
+			local state = XMLCapture (queue, 'state')
+			local ownerId = tonumber (XMLCapture (queue, 'owner'))
 
-		local source = tonumber (string.match (queue, '<device_id>(.-)</device_id>'))
-		local state = string.match (queue, '<state>(.-)</state>')
-		local ownerId = tonumber (string.match (queue, '<owner>(.-)</owner>'))
+			QueueMap [qId] = {
+				source = source,
+				state = state,
+				ownerId = ownerId,
+				qId = qId,
+			}
 
-		QueueMap [qId] = {
-			source = source,
-			state = state,
-			ownerId = ownerId,
-			qId = qId,
-		}
+			table.insert (QueueMap [qId], ownerId)
 
-		table.insert (QueueMap [qId], ownerId)
+			local rooms = XMLCapture (queue, 'rooms')
 
-		local rooms = string.match (queue, '<rooms>(.-)</rooms>')
-
-		for roomId in string.gmatch (rooms, '<id>(.-)</id>') do
-			roomId = tonumber (roomId)
-			if (roomId ~= ownerId) then
-				table.insert (QueueMap [qId], roomId)
+			for roomId in XMLgCapture (rooms, 'id') do
+				local roomId = tonumber (roomId)
+				if (roomId) then
+					if (roomId ~= ownerId) then
+						table.insert (QueueMap [qId], roomId)
+					end
+					RoomQIDMap [roomId] = qId
+				end
 			end
-			RoomQIDMap [roomId] = qId
 		end
 	end
 end
 
 function OWVC.ParseQueueSettingsInfo (idDevice, idVariable, strValue)
-	local info = strValue or ''
 	RoomSettings = {}
 
-	for room_info in string.gmatch (info, '<room_info>(.-)</room_info>') do
-		local roomId = tonumber (string.match (room_info, '<roomid>(.-)</roomid>'))
-		local s = string.match (room_info, '<shuffle>(.-)</shuffle>')
-		local r = string.match (room_info, '<repeat>(.-)</repeat>')
-
-		RoomSettings [roomId] = {
-			SHUFFLE = (s == '1'),
-			REPEAT = (r == '1'),
-		}
+	for room_info in XMLgCapture (strValue, 'room_info') do
+		local roomId = tonumber (XMLCapture (room_info, 'roomid'))
+		local s = XMLCapture (room_info, 'shuffle')
+		local r = XMLCapture (room_info, 'repeat')
+		if (roomId) then
+			RoomSettings [roomId] = {
+				SHUFFLE = (s == '1'),
+				REPEAT = (r == '1'),
+			}
+		end
 	end
 end
 
@@ -526,7 +555,7 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 		nav.roomId = tonumber (tParams.ROOMID)
 		local seq = tParams.SEQ
 
-		if (NavigatorSerializedArgs) then
+		if (NavigatorSerializedArgs and type (NavigatorSerializedArgs) == 'table') then
 			for arg, serialized in pairs (NavigatorSerializedArgs) do
 				if (args [arg] and serialized) then
 					args [arg] = Deserialize (args [arg])
@@ -656,7 +685,7 @@ function ParseRoomIds (roomIdsToParse, firstRoomId)
 	elseif (type (roomIdsToParse) == 'string') then
 		if (#roomIdsToParse > 0) then
 			for roomId in string.gmatch (roomIdsToParse .. ',', '(.-)[,$]') do
-				roomId = tonumber (roomId)
+				local roomId = tonumber (roomId)
 				if (roomId) then
 					table.insert (roomIds, roomId)
 				end
@@ -1077,7 +1106,6 @@ function QueueSetShuffle (qId)
 					SHUFFLE = ((thisQ.SHUFFLE and 1) or 0),
 				}
 				C4:SendToDevice (C4_DIGITAL_AUDIO, 'SHUFFLE', params)
-
 			end
 		end
 		UpdateQueue (qId)
@@ -1386,7 +1414,7 @@ function GetDashboardByQueue (qId)
 			end
 		end
 
-		dashboard = table.concat (dashboard, ' ')
+		local dashboard = table.concat (dashboard, ' ')
 
 		thisQ.dashboard = dashboard
 		return dashboard
@@ -1395,15 +1423,19 @@ end
 
 function GetNowPlayingTagsByQueue (qId)
 	qId = tonumber (qId)
+	if (not qId) then
+		return
+	end
+
 	local thisQ = SongQs [qId]
 
 	if (thisQ) then
-		local nowPlayingTags = CopyTable (thisQ.nowPlayingTags or {})
+		local nowPlayingTags = CopyTable (thisQ.nowPlayingTags) or {}
 
 		nowPlayingTags.shuffle_on = tostring (thisQ.SHUFFLE ~= nil)
 		nowPlayingTags.repeat_on = tostring (thisQ.REPEAT == true)
 
-		nowPlayingTags.actions_list = nowPlayingTags.actions_list or DEFAULT_QUEUE_ACTIONS_LIST
+		local actions_list = Select (thisQ, 'nowPlayingTags', 'actions_list') or DEFAULT_QUEUE_ACTIONS_LIST
 
 		if (SUPPORTS_CUSTOM_DASH) then
 			nowPlayingTags.can_shuffle = 'false'
@@ -1416,18 +1448,18 @@ function GetNowPlayingTagsByQueue (qId)
 			nowPlayingTags.can_thumbs_down = 'false'
 			nowPlayingTags.can_thumbs_down_cancel = 'false'
 
-			if (nowPlayingTags.actions_list) then
-				for i = #nowPlayingTags.actions_list, 1, -1 do
-					local action = nowPlayingTags.actions_list [i]
+			if (actions_list) then
+				for i = #actions_list, 1, -1 do
+					local action = actions_list [i]
 					if (CUSTOM_DASH_ACTIONS [action]) then
-						table.remove (nowPlayingTags.actions_list, i)
+						table.remove (actions_list, i)
 					end
 				end
 			end
 		end
 
-		if (nowPlayingTags.actions_list) then
-			nowPlayingTags.actions_list = table.concat (nowPlayingTags.actions_list, ' ')
+		if (actions_list) then
+			nowPlayingTags.actions_list = table.concat (actions_list, ' ')
 		end
 
 		return (XMLTag (nowPlayingTags))
@@ -1532,7 +1564,7 @@ function MakeList (response, collection, options)
 			end
 		end
 
-		if (NavigatorSerializedArgs) then
+		if (NavigatorSerializedArgs and type (NavigatorSerializedArgs) == 'table') then
 			for arg, serialized in pairs (NavigatorSerializedArgs) do
 				if (item [arg] and serialized) then
 					item [arg] = Serialize (item [arg])
@@ -1543,7 +1575,7 @@ function MakeList (response, collection, options)
 		table.insert (list, XMLTag ('item', item))
 	end
 
-	list = table.concat (list)
+	local list = table.concat (list)
 
 	if (response.totalCount) then
 		if (MAX_LIST_SIZE and response.totalCount > MAX_LIST_SIZE) then
@@ -1606,7 +1638,7 @@ function UpdateQueue (qId, options)
 
 	if (thisQ and GetRoomMapByQueueID (qId) [1]) then
 		local rooms = GetRoomMapByQueueID (qId)
-		rooms = table.concat (rooms, ',')
+		local rooms = table.concat (rooms, ',')
 
 		local index = thisQ.CurrentTrack
 
@@ -1633,7 +1665,7 @@ function UpdateQueue (qId, options)
 
 		local list = {}
 		for i = start, finish do
-			local item = CopyTable (thisQ.Q [i])
+			local item = CopyTable (thisQ.Q [i]) or {}
 
 			if (SUPPORTS_DEFAULT_AND_ACTIONS) then
 				if (item.default_action == nil) then
@@ -1643,7 +1675,7 @@ function UpdateQueue (qId, options)
 				end
 			end
 
-			if (NavigatorSerializedArgs) then
+			if (NavigatorSerializedArgs and type (NavigatorSerializedArgs) == 'table') then
 				for arg, serialized in pairs (NavigatorSerializedArgs) do
 					if (item [arg] and serialized) then
 						item [arg] = Serialize (item [arg])
@@ -1653,23 +1685,23 @@ function UpdateQueue (qId, options)
 
 			table.insert (list, XMLTag ('item', item))
 		end
-		list = table.concat (list)
-
-		if (options.forceRefreshList) then
-			thisQ.LastQueueList = list
-		elseif (options.suppressList) then
-			list = nil
-		elseif (list and list == thisQ.LastQueueList) then
-			list = nil
-		else
-			thisQ.LastQueueList = list
-		end
+		local list = table.concat (list)
 
 		local event = {
 			NowPlaying = GetNowPlayingTagsByQueue (qId),
 			NowPlayingIndex = index - 1, -- this is a 0 indexed list for some reason
 			List = list,
 		}
+
+		if (options.forceRefreshList) then
+			thisQ.LastQueueList = list
+		elseif (options.suppressList) then
+			event.List = nil
+		elseif (list and list == thisQ.LastQueueList) then
+			event.List = nil
+		else
+			thisQ.LastQueueList = list
+		end
 
 		SendEvent (MSP_PROXY, nil, rooms, 'QueueChanged', event)
 	end
@@ -1681,7 +1713,7 @@ function UpdateDashboard (qId)
 	if (thisQ and GetRoomMapByQueueID (qId) [1]) then
 		local dashboard = GetDashboardByQueue (qId)
 		local rooms = GetRoomMapByQueueID (qId)
-		rooms = table.concat (rooms, ',')
+		local rooms = table.concat (rooms, ',')
 
 		SendEvent (MSP_PROXY, nil, rooms, 'DashboardChanged', { QueueId = qId, Items = dashboard, })
 	end
@@ -1691,7 +1723,7 @@ function UpdateProgress (qId)
 	local thisQ = SongQs [qId]
 	if (thisQ and GetRoomMapByQueueID (qId) [1]) then
 		local rooms = GetRoomMapByQueueID (qId)
-		rooms = table.concat (rooms, ',')
+		local rooms = table.concat (rooms, ',')
 
 		local args
 
@@ -1754,6 +1786,9 @@ end
 
 function OnQueueDeleted (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
+	if (not qId) then
+		return
+	end
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
 
 	local lastState = tParams.LAST_STATE
@@ -1777,6 +1812,9 @@ end
 
 function OnQueueInfoChanged (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
+	if (not qId) then
+		return
+	end
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
 
 	local state = tParams.QUEUE_STATE
@@ -1852,6 +1890,9 @@ end
 
 function OnQueueStateChanged (idBinding, tParams)
 	local qId = tonumber (tParams.QUEUE_ID)
+	if (not qId) then
+		return
+	end
 	local queueInfo = tonumber (tParams.QUEUE_INFO)
 
 	local currentState = tParams.STATE
@@ -2020,9 +2061,11 @@ function ParseQueueStreamStatus (status)
 		local value = string.sub (status, startOfValue, endOfValue - 1)
 
 		value = string.match (value, '^%s*(.-)%s*$')
-		if (value == '') then value = nil end
 
 		ret [key] = value
+		if (value == '') then
+			ret [key] = nil
+		end
 	end
 
 	for k, v in pairs (CopyTable (ret)) do
@@ -2051,10 +2094,16 @@ end
 function AttemptToLogin ()
 	if (PersistData.AuthSettings.username and PersistData.AuthSettings.password) then
 		local username = PersistData.AuthSettings.username
-		local password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil,
-			PersistData.AuthSettings.password, AES_DEC_DEFAULTS)
+		local password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, PersistData.AuthSettings.password, AES_DEC_DEFAULTS)
 		if (username and password) then
-			Login (username, password)
+			if (type (Login) == 'function') then
+				local success, ret = pcall (Login, username, password)
+				if (success == true) then
+					return (ret)
+				else
+					dbg ('AttemptToLogin Error:', ret)
+				end
+			end
 		end
 	end
 end
@@ -2248,7 +2297,7 @@ function Navigator:urlDo (idBinding, seq, method, url, data, headers, callback, 
 end
 
 function Navigator:urlGet (idBinding, seq, url, headers, callback, context, options)
-	self:urlDo (idBinding, seq, 'GET', url, data, headers, callback, context, options)
+	self:urlDo (idBinding, seq, 'GET', url, nil, headers, callback, context, options)
 end
 
 function Navigator:urlPost (idBinding, seq, url, data, headers, callback, context, options)
@@ -2260,7 +2309,7 @@ function Navigator:urlPut (idBinding, seq, url, data, headers, callback, context
 end
 
 function Navigator:urlDelete (idBinding, seq, url, headers, callback, context, options)
-	self:urlDo (idBinding, seq, 'DELETE', url, data, headers, callback, context, options)
+	self:urlDo (idBinding, seq, 'DELETE', url, nil, headers, callback, context, options)
 end
 
 function Navigator:urlCustom (idBinding, seq, url, method, data, headers, callback, context, options)
@@ -2465,11 +2514,17 @@ function Navigator:LogInCommand (idBinding, seq, args)
 	local username = ((args.username ~= '' and args.username) or nil) or self.AuthSettings.username
 	local password = ((args.password ~= '' and args.password) or nil)
 	if (not password and self.AuthSettings.password) then
-		password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, self.AuthSettings.password,
-			AES_DEC_DEFAULTS)
+		password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, self.AuthSettings.password, AES_DEC_DEFAULTS)
 	end
 	if (username and password) then
-		Login (username, password, self.navId)
+		if (type (Login) == 'function') then
+			local success, ret = pcall (Login, username, password, self.navId)
+			if (success == true) then
+				return ('')
+			else
+				dbg ('LogInCommand Error:', ret)
+			end
+		end
 	end
 	return ('')
 end
@@ -2537,11 +2592,11 @@ function Navigator:SettingChanged (idBinding, seq, args)
 end
 
 function Navigator:GetSettings_username ()
-	local username = ''
+	local username
 	if (Select (self, 'AuthSettings', 'username')) then
 		username = self.AuthSettings.username
 	end
-	return username
+	return username or ''
 end
 
 function Navigator:SettingChanged_username (value)
@@ -2550,12 +2605,11 @@ function Navigator:SettingChanged_username (value)
 end
 
 function Navigator:GetSettings_password ()
-	local password = ''
+	local password
 	if (Select (self, 'AuthSettings', 'password')) then
-		password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, self.AuthSettings.password,
-			AES_DEC_DEFAULTS)
+		password = C4:Decrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, self.AuthSettings.password, AES_DEC_DEFAULTS)
 	end
-	return password
+	return password or ''
 end
 
 function Navigator:SettingChanged_password (value)
@@ -2575,7 +2629,7 @@ function Navigator:GetSettings_status ()
 	else
 		status = 'Logged Out'
 	end
-	return status
+	return status or ''
 end
 
 function Navigator:GetSearchHistory (idBinding, seq, args)
@@ -2585,7 +2639,7 @@ function Navigator:GetSearchHistory (idBinding, seq, args)
 			table.insert (list, XMLTag ('item', { name = name, }))
 		end
 
-		list = table.concat (list)
+		local list = table.concat (list)
 		return ({ List = list, })
 	else
 		return ('')

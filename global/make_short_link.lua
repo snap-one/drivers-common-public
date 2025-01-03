@@ -17,7 +17,7 @@ function MakeShortLink (link, callback, apiKey)
 	}
 
 	local headers = {
-		Authorization = apiKey
+		Authorization = apiKey,
 	}
 
 	local contextInfo = {

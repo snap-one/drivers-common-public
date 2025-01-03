@@ -1,18 +1,15 @@
--- Copyright 2021 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 7
+COMMON_METRICS_VER = 8
 
-local Metrics = {
-}
+local Metrics = {}
 
 DEBUG_METRICS = DEBUG_METRICS or false
 
 function Metrics:new (group, version, identifier)
-
 	if (group == nil) then
 		group = tostring (C4:GetDriverConfigInfo ('name'))
 		version = tostring (C4:GetDriverConfigInfo ('version'))
-
 	elseif (type (group) == 'string') then
 		if (type (version) == 'number') then
 			version = tostring (version)
@@ -20,7 +17,6 @@ function Metrics:new (group, version, identifier)
 		if (type (version) ~= 'string') then
 			error ('Metrics:new - version is required when specifying a metric group', 2)
 		end
-
 	else
 		error ('Metrics:new - group must be a string or nil', 2)
 		return
@@ -52,7 +48,7 @@ function Metrics:new (group, version, identifier)
 		table.insert (namespace, 1, 'sandbox')
 	end
 
-	namespace = table.concat (namespace, '.')
+	local namespace = table.concat (namespace, '.')
 
 	if (Metrics.NameSpaces and Metrics.NameSpaces [namespace]) then
 		local metric = Metrics.NameSpaces [namespace]
@@ -73,6 +69,7 @@ function Metrics:new (group, version, identifier)
 end
 
 function Metrics:SetCounter (key, value, sampleRate)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdCounter) then
 		return
 	end
@@ -86,7 +83,7 @@ function Metrics:SetCounter (key, value, sampleRate)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetCounter - Cannot set counter ' .. tostring (key) ..  ' to non-number value', 2)
+		error ('Metrics:SetCounter - Cannot set counter ' .. tostring (key) .. ' to non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -98,6 +95,7 @@ function Metrics:SetCounter (key, value, sampleRate)
 end
 
 function Metrics:SetGauge (key, value)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdGauge) then
 		return
 	end
@@ -107,7 +105,7 @@ function Metrics:SetGauge (key, value)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetGauge - Cannot set stats gauge ' .. tostring (key) ..  ' to non-number value', 2)
+		error ('Metrics:SetGauge - Cannot set stats gauge ' .. tostring (key) .. ' to non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -119,6 +117,7 @@ function Metrics:SetGauge (key, value)
 end
 
 function Metrics:AdjustGauge (key, value)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdAdjustGauge) then
 		return
 	end
@@ -128,7 +127,7 @@ function Metrics:AdjustGauge (key, value)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:AdjustGauge - Trying to adjust stats gauge ' .. tostring (key) ..  ' by non-number value', 2)
+		error ('Metrics:AdjustGauge - Trying to adjust stats gauge ' .. tostring (key) .. ' by non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -140,6 +139,7 @@ function Metrics:AdjustGauge (key, value)
 end
 
 function Metrics:SetTimer (key, value)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdTimer) then
 		return
 	end
@@ -149,7 +149,7 @@ function Metrics:SetTimer (key, value)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetTimer - Cannot set stats timer ' .. tostring (key) ..  ' to non-number value', 2)
+		error ('Metrics:SetTimer - Cannot set stats timer ' .. tostring (key) .. ' to non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -161,6 +161,7 @@ function Metrics:SetTimer (key, value)
 end
 
 function Metrics:SetString (key, value)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdString) then
 		return
 	end
@@ -170,7 +171,7 @@ function Metrics:SetString (key, value)
 	end
 
 	if (type (value) ~= 'string') then
-		error ('Metrics:SetString - Cannot set stats string ' .. tostring (key) ..  ' to non-string value', 2)
+		error ('Metrics:SetString - Cannot set stats string ' .. tostring (key) .. ' to non-string value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -184,6 +185,7 @@ function Metrics:SetString (key, value)
 end
 
 function Metrics:SetJSON (key, value)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdJSONObject) then
 		return
 	end
@@ -193,7 +195,7 @@ function Metrics:SetJSON (key, value)
 	end
 
 	if (type (value) ~= 'string') then
-		error ('Metrics:SetJSON - Cannot set stats JSONObject ' .. tostring (key) ..  ' to non-string value', 2)
+		error ('Metrics:SetJSON - Cannot set stats JSONObject ' .. tostring (key) .. ' to non-string value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -207,6 +209,7 @@ function Metrics:SetJSON (key, value)
 end
 
 function Metrics:SetIncrementingMeter (key, value)
+	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdIncrementMeter) then
 		return
 	end
@@ -216,7 +219,7 @@ function Metrics:SetIncrementingMeter (key, value)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetIncrementingMeter - Cannot set incremeting meter ' .. tostring (key) ..  ' to non-number value', 2)
+		error ('Metrics:SetIncrementingMeter - Cannot set incremeting meter ' .. tostring (key) .. ' to non-number value', 2)
 		return
 	end
 

@@ -8,8 +8,14 @@
 local COPYRIGHT = '2010-2011 Jeffrey Friedl'
 local URL = 'http://regex.info/blog/'
 local VERSION = 20111207.5 -- version history at end of file
-OBJDEF = {VERSION = VERSION, URL = URL, COPYRIGHT = COPYRIGHT}
+OBJDEF = {VERSION = VERSION, URL = URL, COPYRIGHT = COPYRIGHT,}
 
+OBJDEF.NULL = {}
+OBJDEF.EMPTY_ARRAY = {}
+OBJDEF.EMPTY_OBJECT = {}
+setmetatable (OBJDEF.NULL, {__newindex = function () print ('JSON.NULL is immutable') end})
+setmetatable (OBJDEF.EMPTY_ARRAY, {__newindex = function () print ('JSON.EMPTY_ARRAY is immutable') end})
+setmetatable (OBJDEF.EMPTY_OBJECT, {__newindex = function () print ('JSON.EMPTY_OBJECT is immutable') end})
 --
 -- Simple JSON encoding and decoding in pure Lua.
 -- http://www.json.org/
@@ -623,6 +629,13 @@ function encode_value(self, value, parents, etc)
 	if value == nil then
 		return 'null'
 	end
+	if (value == self.NULL) then
+		return 'null'
+	elseif (value == self.EMPTY_ARRAY) then
+		return '[]'
+	elseif (value == self.EMPTY_OBJECT) then
+		return '{}'
+	end
 
 	if type(value) == 'string' then
 		return json_string_literal(value)
@@ -715,6 +728,13 @@ end
 
 local encode_pretty_value  -- must predeclare because it calls itself
 function encode_pretty_value(self, value, parents, indent, etc)
+	if (value == self.NULL) then
+		return 'null'
+	elseif (value == self.EMPTY_ARRAY) then
+		return '[]'
+	elseif (value == self.EMPTY_OBJECT) then
+		return '{}'
+	end
 	if type(value) == 'string' then
 		return json_string_literal(value)
 	elseif type(value) == 'number' then
@@ -803,6 +823,8 @@ function OBJDEF.__tostring()
 end
 
 OBJDEF.__index = OBJDEF
+OBJDEF.__newindex = function () print ('JSON.lua is immutable') end
+OBJDEF.__metatable = false
 
 function OBJDEF:new(args)
 	local new = {}

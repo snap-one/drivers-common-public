@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 25
+COMMON_URL_VER = 26
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -9,7 +9,7 @@ require ('drivers-common-public.global.lib')
 Metrics = require ('drivers-common-public.module.metrics')
 
 
-do	--Globals
+do --Globals
 	GlobalTicketHandlers = GlobalTicketHandlers or {}
 
 	ETag = ETag or {}
@@ -20,7 +20,19 @@ do	--Globals
 	DEBUG_URL = DEBUG_URL or false
 end
 
-do	--Setup Metrics
+do -- Globals defined by importing drivers
+	-- functions
+
+	--tables
+	DEFAULT_URL_ARGS = DEFAULT_URL_ARGS
+	APIBase = APIBase
+
+	--string or bool
+end
+
+
+
+do --Setup Metrics
 	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
 
@@ -76,7 +88,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 
 		if (pathPart) then
 			local parts = {}
-			for part in string.gmatch (pathPart , '([^%/]+)') do
+			for part in string.gmatch (pathPart, '([^%/]+)') do
 				if (string.match (part, '%.%.$')) then
 					table.remove (parts, #parts)
 				else
@@ -85,7 +97,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 					end
 				end
 			end
-			table.insert (parts, '')	--ensure trailing slash
+			table.insert (parts, '') --ensure trailing slash
 			pathPart = table.concat (parts, '/')
 		end
 
@@ -124,7 +136,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 			table.insert (url, '?')
 		end
 
-		urlargs = table.concat (urlargs, '&')
+		local urlargs = table.concat (urlargs, '&')
 		table.insert (url, urlargs)
 	end
 
@@ -133,7 +145,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 		table.insert (url, fragmentPart)
 	end
 
-	url = table.concat (url)
+	local url = table.concat (url)
 
 	return (url)
 end
@@ -201,7 +213,6 @@ function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 end
 
 function ProcessResponse (strData, responseCode, tHeaders, strError, info)
-
 	local eTagHit
 	local eTagURL
 
@@ -230,16 +241,27 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 				table.remove (ETag, eTagURL)
 			end
 			if (tag and info.METHOD ~= 'DELETE') then
-				table.insert (ETag, 1, {url = url, strData = strData, tHeaders = tHeaders, tag = tag})
+				local etagInfo = {
+					url = url,
+					strData = strData,
+					tHeaders = tHeaders,
+					tag = tag,
+				}
+				table.insert (ETag, 1, etagInfo)
 			end
-
 		elseif (tag and responseCode == 304 and strError == nil) then
 			if (eTagURL) then
 				eTagHit = true
 				strData = ETag [eTagURL].strData
 				tHeaders = ETag [eTagURL].tHeaders
 				table.remove (ETag, eTagURL)
-				table.insert (ETag, 1, {url = url, strData = strData, tHeaders = tHeaders, tag = tag})
+				local etagInfo = {
+					url = url,
+					strData = strData,
+					tHeaders = tHeaders,
+					tag = tag,
+				}
+				table.insert (ETag, 1, etagInfo)
 				responseCode = 200
 			end
 		end
@@ -291,7 +313,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		table.insert (d, strData)
 		table.insert (d, '-:PAYLOAD_ENDS:-')
 		table.insert (d, '---')
-		d = table.concat (d, '\r\n')
+		local d = table.concat (d, '\r\n')
 
 		print (d)
 
@@ -318,7 +340,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 
 			MetricsURL:SetCounter ('Error_RX_JSON')
 
-			data = {strData}
+			data = { strData, }
 		end
 	else
 		data = strData
@@ -337,6 +359,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		MetricsURL:SetCounter ('RX_' .. info.METHOD)
 	end
 
+	local success, ret
 	if (info.CALLBACK and type (info.CALLBACK) == 'function') then
 		success, ret = pcall (info.CALLBACK, strError, responseCode, tHeaders, data, info.CONTEXT, info.URL)
 	end
@@ -349,6 +372,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlDo (method, url, data, headers, callback, context, options)
 	local info = {}
 	if (type (callback) == 'function') then
@@ -421,7 +445,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 		table.insert (d, '-:PAYLOAD_ENDS:-')
 		table.insert (d, '---')
 
-		d = table.concat (d, '\r\n')
+		local d = table.concat (d, '\r\n')
 
 		print (d)
 
@@ -511,7 +535,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 		if (flags == nil) then
 			flags = {
 				--response_headers_merge_redirects = false,
-				cookies_enable = true
+				cookies_enable = true,
 			}
 		end
 
@@ -531,7 +555,6 @@ function urlDo (method, url, data, headers, callback, context, options)
 
 		if (info.TICKET and info.TICKET ~= 0) then
 			table.insert (GlobalTicketHandlers, info)
-
 		else
 			MetricsURL:SetCounter ('Error_TX')
 
@@ -545,26 +568,31 @@ function urlDo (method, url, data, headers, callback, context, options)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlGet (url, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_GET')
-	urlDo ('GET', url, data, headers, callback, context, options)
+	urlDo ('GET', url, nil, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlPost (url, data, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_POST')
 	urlDo ('POST', url, data, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlPut (url, data, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_PUT')
 	urlDo ('PUT', url, data, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlDelete (url, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_DELETE')
-	urlDo ('DELETE', url, data, headers, callback, context, options)
+	urlDo ('DELETE', url, nil, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlCustom (url, method, data, headers, callback, context, options)
 	MetricsURL:SetCounter ('TX_' .. method)
 	urlDo (method, url, data, headers, callback, context, options)
