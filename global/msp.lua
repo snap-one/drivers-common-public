@@ -225,13 +225,6 @@ function OnDriverLateInit (driverInitType)
 	SUPPORTS_FAVORITE_TO_ROOM = VersionCheck ('3.0,0')
 	SUPPORTS_FAVORITE_TO_HOME = VersionCheck ('4.0.0')
 
-	C4_FAVORITE_STRING = ''
-	if (SUPPORTS_FAVORITE_TO_HOME) then
-		C4_FAVORITE_STRING = 'FavoriteToRoom FavoriteToHome'
-	elseif (SUPPORTS_FAVORITE_TO_ROOM) then
-		C4_FAVORITE_STRING = 'FavoriteToRoom'
-	end
-
 	HomeTabId = 'Library'
 	HomeScreenId = 'LibraryScreen'
 
@@ -389,7 +382,7 @@ end
 function OWVC.ParseQueueSettingsInfo (idDevice, idVariable, strValue)
 	RoomSettings = {}
 
-	for room_info in string.gmatch (strValue, 'room_info') do
+	for room_info in XMLgCapture (strValue, 'room_info') do
 		local roomId = tonumber (XMLCapture (room_info, 'roomid'))
 		local s = XMLCapture (room_info, 'shuffle')
 		local r = XMLCapture (room_info, 'repeat')
@@ -1442,7 +1435,7 @@ function GetNowPlayingTagsByQueue (qId)
 		nowPlayingTags.shuffle_on = tostring (thisQ.SHUFFLE ~= nil)
 		nowPlayingTags.repeat_on = tostring (thisQ.REPEAT == true)
 
-		local actions_list = Select (thisQ, nowPlayingTags, 'actions_list') or DEFAULT_QUEUE_ACTIONS_LIST
+		local actions_list = Select (thisQ, 'nowPlayingTags', 'actions_list') or DEFAULT_QUEUE_ACTIONS_LIST
 
 		if (SUPPORTS_CUSTOM_DASH) then
 			nowPlayingTags.can_shuffle = 'false'
@@ -1496,7 +1489,7 @@ function JoinRoomToSession (roomIds, qId)
 		end
 	end
 
-	local roomIds = ParseRoomIds (roomIds)
+	local roomIds, firstRoomId = ParseRoomIds (roomIds)
 
 	local sessionQueue = GetRoomMapByQueueID (qId)
 
