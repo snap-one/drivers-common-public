@@ -24,9 +24,11 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 		return ws
 	end
 
-	local protocol, host, port, resource -- important values to be incorporated into our WebSocket object
+	-- important values to be incorporated into our WebSocket object
+	local protocol, host, port, resource
 
-	local rest, hostport -- temporary values for parsing
+	-- temporary values for parsing
+	local rest, hostport
 
 	protocol, rest = string.match (url or '', '(wss?)://(.*)')
 

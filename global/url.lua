@@ -9,7 +9,7 @@ require ('drivers-common-public.global.lib')
 Metrics = require ('drivers-common-public.module.metrics')
 
 
-do	--Globals
+do --Globals
 	GlobalTicketHandlers = GlobalTicketHandlers or {}
 
 	ETag = ETag or {}
@@ -32,7 +32,7 @@ end
 
 
 
-do	--Setup Metrics
+do --Setup Metrics
 	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
 
@@ -88,7 +88,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 
 		if (pathPart) then
 			local parts = {}
-			for part in string.gmatch (pathPart , '([^%/]+)') do
+			for part in string.gmatch (pathPart, '([^%/]+)') do
 				if (string.match (part, '%.%.$')) then
 					table.remove (parts, #parts)
 				else
@@ -97,7 +97,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 					end
 				end
 			end
-			table.insert (parts, '')	--ensure trailing slash
+			table.insert (parts, '') --ensure trailing slash
 			pathPart = table.concat (parts, '/')
 		end
 
@@ -213,7 +213,6 @@ function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 end
 
 function ProcessResponse (strData, responseCode, tHeaders, strError, info)
-
 	local eTagHit
 	local eTagURL
 
@@ -242,16 +241,27 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 				table.remove (ETag, eTagURL)
 			end
 			if (tag and info.METHOD ~= 'DELETE') then
-				table.insert (ETag, 1, {url = url, strData = strData, tHeaders = tHeaders, tag = tag})
+				local etagInfo = {
+					url = url,
+					strData = strData,
+					tHeaders = tHeaders,
+					tag = tag,
+				}
+				table.insert (ETag, 1, etagInfo)
 			end
-
 		elseif (tag and responseCode == 304 and strError == nil) then
 			if (eTagURL) then
 				eTagHit = true
 				strData = ETag [eTagURL].strData
 				tHeaders = ETag [eTagURL].tHeaders
 				table.remove (ETag, eTagURL)
-				table.insert (ETag, 1, {url = url, strData = strData, tHeaders = tHeaders, tag = tag})
+				local etagInfo = {
+					url = url,
+					strData = strData,
+					tHeaders = tHeaders,
+					tag = tag,
+				}
+				table.insert (ETag, 1, etagInfo)
 				responseCode = 200
 			end
 		end
@@ -330,7 +340,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 
 			MetricsURL:SetCounter ('Error_RX_JSON')
 
-			data = {strData}
+			data = { strData, }
 		end
 	else
 		data = strData
@@ -525,7 +535,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 		if (flags == nil) then
 			flags = {
 				--response_headers_merge_redirects = false,
-				cookies_enable = true
+				cookies_enable = true,
 			}
 		end
 
@@ -545,7 +555,6 @@ function urlDo (method, url, data, headers, callback, context, options)
 
 		if (info.TICKET and info.TICKET ~= 0) then
 			table.insert (GlobalTicketHandlers, info)
-
 		else
 			MetricsURL:SetCounter ('Error_TX')
 
