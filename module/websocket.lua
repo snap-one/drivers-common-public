@@ -455,7 +455,7 @@ function WebSocket:parseHTTPPacket ()
 	if (EOH and headers ['SEC-WEBSOCKET-ACCEPT']) then
 		self.buf = string.sub (self.buf, EOH + 4)
 		local check = self.key .. '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-		local hash = C4:Hash ('sha1', check, { ['return_encoding'] = 'BASE64', })
+		local hash = C4:Hash ('SHA1', check, { ['return_encoding'] = 'BASE64', })
 
 		if (headers ['SEC-WEBSOCKET-ACCEPT'] == hash and
 				string.lower (headers ['UPGRADE']) == 'websocket' and
