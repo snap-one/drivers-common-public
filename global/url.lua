@@ -1,6 +1,6 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 26
+COMMON_URL_VER = 27
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -18,6 +18,8 @@ do --Globals
 	USE_NEW_URL = VersionCheck ('3.0.0')
 
 	DEBUG_URL = DEBUG_URL or false
+
+	SEND_SUCCESS_METRICS = SEND_SUCCESS_METRICS or false
 end
 
 do -- Globals defined by importing drivers
@@ -205,7 +207,9 @@ end
 function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 	for k, info in pairs (GlobalTicketHandlers) do
 		if (info.TICKET == ticketId) then
-			MetricsURL:SetCounter ('RX')
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetCounter ('RX')
+			end
 			table.remove (GlobalTicketHandlers, k)
 			ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		end
@@ -336,7 +340,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	if (isJSON and strError == nil) then
 		data = JSON:decode (strData)
 		if (data == nil and len ~= 0) then
-			print ('Content-Type indicated JSON but content is not valid JSON')
+			print ('dcp_url: Content-Type indicated JSON but content is not valid JSON')
 
 			MetricsURL:SetCounter ('Error_RX_JSON')
 
@@ -356,7 +360,9 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 
 	if (info.METHOD) then
-		MetricsURL:SetCounter ('RX_' .. info.METHOD)
+		if (SEND_SUCCESS_METRICS) then
+			MetricsURL:SetCounter ('RX_' .. info.METHOD)
+		end
 	end
 
 	local success, ret
@@ -475,7 +481,9 @@ function urlDo (method, url, data, headers, callback, context, options)
 		t:SetOptions (options)
 
 		local _onDone = function (transfer, responses, errCode, errMsg)
-			MetricsURL:SetCounter ('RX')
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetCounter ('RX')
+			end
 
 			local endTime
 			if (C4.GetTime) then
@@ -484,7 +492,9 @@ function urlDo (method, url, data, headers, callback, context, options)
 				endTime = os.time () * 1000
 			end
 			local interval = endTime - startTime
-			MetricsURL:SetTimer ('TXtoRX', interval)
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetTimer ('TXtoRX', interval)
+			end
 
 			if (errCode == -1 and errMsg == nil) then
 				errMsg = 'Transfer cancelled'
@@ -509,12 +519,16 @@ function urlDo (method, url, data, headers, callback, context, options)
 				processTime = os.time () * 1000
 			end
 			local interval = processTime - startTime
-			MetricsURL:SetTimer ('TXtoDone', interval)
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetTimer ('TXtoDone', interval)
+			end
 		end
 
 		t:OnDone (_onDone)
 
-		MetricsURL:SetCounter ('TX')
+		if (SEND_SUCCESS_METRICS) then
+			MetricsURL:SetCounter ('TX')
+		end
 
 		if (method == 'GET') then
 			t:Get (url, headers)
@@ -539,7 +553,9 @@ function urlDo (method, url, data, headers, callback, context, options)
 			}
 		end
 
-		MetricsURL:SetCounter ('TX')
+		if (SEND_SUCCESS_METRICS) then
+			MetricsURL:SetCounter ('TX')
+		end
 
 		if (method == 'GET') then
 			info.TICKET = C4:urlGet (url, headers, false, ReceivedAsync, flags)
@@ -570,30 +586,40 @@ end
 
 ---@diagnostic disable-next-line: lowercase-global
 function urlGet (url, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_GET')
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_GET')
+	end
 	urlDo ('GET', url, nil, headers, callback, context, options)
 end
 
 ---@diagnostic disable-next-line: lowercase-global
 function urlPost (url, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_POST')
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_POST')
+	end
 	urlDo ('POST', url, data, headers, callback, context, options)
 end
 
 ---@diagnostic disable-next-line: lowercase-global
 function urlPut (url, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_PUT')
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_PUT')
+	end
 	urlDo ('PUT', url, data, headers, callback, context, options)
 end
 
 ---@diagnostic disable-next-line: lowercase-global
 function urlDelete (url, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_DELETE')
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_DELETE')
+	end
 	urlDo ('DELETE', url, nil, headers, callback, context, options)
 end
 
 ---@diagnostic disable-next-line: lowercase-global
 function urlCustom (url, method, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_' .. method)
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_' .. method)
+	end
 	urlDo (method, url, data, headers, callback, context, options)
 end
