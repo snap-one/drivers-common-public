@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 25
+COMMON_URL_VER = 27
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -9,7 +9,7 @@ require ('drivers-common-public.global.lib')
 Metrics = require ('drivers-common-public.module.metrics')
 
 
-do	--Globals
+do --Globals
 	GlobalTicketHandlers = GlobalTicketHandlers or {}
 
 	ETag = ETag or {}
@@ -18,9 +18,23 @@ do	--Globals
 	USE_NEW_URL = VersionCheck ('3.0.0')
 
 	DEBUG_URL = DEBUG_URL or false
+
+	SEND_SUCCESS_METRICS = SEND_SUCCESS_METRICS or false
 end
 
-do	--Setup Metrics
+do -- Globals defined by importing drivers
+	-- functions
+
+	--tables
+	DEFAULT_URL_ARGS = DEFAULT_URL_ARGS
+	APIBase = APIBase
+
+	--string or bool
+end
+
+
+
+do --Setup Metrics
 	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
 
@@ -76,7 +90,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 
 		if (pathPart) then
 			local parts = {}
-			for part in string.gmatch (pathPart , '([^%/]+)') do
+			for part in string.gmatch (pathPart, '([^%/]+)') do
 				if (string.match (part, '%.%.$')) then
 					table.remove (parts, #parts)
 				else
@@ -85,7 +99,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 					end
 				end
 			end
-			table.insert (parts, '')	--ensure trailing slash
+			table.insert (parts, '') --ensure trailing slash
 			pathPart = table.concat (parts, '/')
 		end
 
@@ -124,7 +138,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 			table.insert (url, '?')
 		end
 
-		urlargs = table.concat (urlargs, '&')
+		local urlargs = table.concat (urlargs, '&')
 		table.insert (url, urlargs)
 	end
 
@@ -133,7 +147,7 @@ function MakeURL (path, args, suppressDefaultArgs)
 		table.insert (url, fragmentPart)
 	end
 
-	url = table.concat (url)
+	local url = table.concat (url)
 
 	return (url)
 end
@@ -193,7 +207,9 @@ end
 function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 	for k, info in pairs (GlobalTicketHandlers) do
 		if (info.TICKET == ticketId) then
-			MetricsURL:SetCounter ('RX')
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetCounter ('RX')
+			end
 			table.remove (GlobalTicketHandlers, k)
 			ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		end
@@ -201,7 +217,6 @@ function ReceivedAsync (ticketId, strData, responseCode, tHeaders, strError)
 end
 
 function ProcessResponse (strData, responseCode, tHeaders, strError, info)
-
 	local eTagHit
 	local eTagURL
 
@@ -230,16 +245,27 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 				table.remove (ETag, eTagURL)
 			end
 			if (tag and info.METHOD ~= 'DELETE') then
-				table.insert (ETag, 1, {url = url, strData = strData, tHeaders = tHeaders, tag = tag})
+				local etagInfo = {
+					url = url,
+					strData = strData,
+					tHeaders = tHeaders,
+					tag = tag,
+				}
+				table.insert (ETag, 1, etagInfo)
 			end
-
 		elseif (tag and responseCode == 304 and strError == nil) then
 			if (eTagURL) then
 				eTagHit = true
 				strData = ETag [eTagURL].strData
 				tHeaders = ETag [eTagURL].tHeaders
 				table.remove (ETag, eTagURL)
-				table.insert (ETag, 1, {url = url, strData = strData, tHeaders = tHeaders, tag = tag})
+				local etagInfo = {
+					url = url,
+					strData = strData,
+					tHeaders = tHeaders,
+					tag = tag,
+				}
+				table.insert (ETag, 1, etagInfo)
 				responseCode = 200
 			end
 		end
@@ -291,7 +317,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 		table.insert (d, strData)
 		table.insert (d, '-:PAYLOAD_ENDS:-')
 		table.insert (d, '---')
-		d = table.concat (d, '\r\n')
+		local d = table.concat (d, '\r\n')
 
 		print (d)
 
@@ -314,11 +340,11 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	if (isJSON and strError == nil) then
 		data = JSON:decode (strData)
 		if (data == nil and len ~= 0) then
-			print ('Content-Type indicated JSON but content is not valid JSON')
+			print ('dcp_url: Content-Type indicated JSON but content is not valid JSON')
 
 			MetricsURL:SetCounter ('Error_RX_JSON')
 
-			data = {strData}
+			data = { strData, }
 		end
 	else
 		data = strData
@@ -334,9 +360,12 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 
 	if (info.METHOD) then
-		MetricsURL:SetCounter ('RX_' .. info.METHOD)
+		if (SEND_SUCCESS_METRICS) then
+			MetricsURL:SetCounter ('RX_' .. info.METHOD)
+		end
 	end
 
+	local success, ret
 	if (info.CALLBACK and type (info.CALLBACK) == 'function') then
 		success, ret = pcall (info.CALLBACK, strError, responseCode, tHeaders, data, info.CONTEXT, info.URL)
 	end
@@ -349,6 +378,7 @@ function ProcessResponse (strData, responseCode, tHeaders, strError, info)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlDo (method, url, data, headers, callback, context, options)
 	local info = {}
 	if (type (callback) == 'function') then
@@ -421,7 +451,7 @@ function urlDo (method, url, data, headers, callback, context, options)
 		table.insert (d, '-:PAYLOAD_ENDS:-')
 		table.insert (d, '---')
 
-		d = table.concat (d, '\r\n')
+		local d = table.concat (d, '\r\n')
 
 		print (d)
 
@@ -451,7 +481,9 @@ function urlDo (method, url, data, headers, callback, context, options)
 		t:SetOptions (options)
 
 		local _onDone = function (transfer, responses, errCode, errMsg)
-			MetricsURL:SetCounter ('RX')
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetCounter ('RX')
+			end
 
 			local endTime
 			if (C4.GetTime) then
@@ -460,7 +492,9 @@ function urlDo (method, url, data, headers, callback, context, options)
 				endTime = os.time () * 1000
 			end
 			local interval = endTime - startTime
-			MetricsURL:SetTimer ('TXtoRX', interval)
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetTimer ('TXtoRX', interval)
+			end
 
 			if (errCode == -1 and errMsg == nil) then
 				errMsg = 'Transfer cancelled'
@@ -485,12 +519,16 @@ function urlDo (method, url, data, headers, callback, context, options)
 				processTime = os.time () * 1000
 			end
 			local interval = processTime - startTime
-			MetricsURL:SetTimer ('TXtoDone', interval)
+			if (SEND_SUCCESS_METRICS) then
+				MetricsURL:SetTimer ('TXtoDone', interval)
+			end
 		end
 
 		t:OnDone (_onDone)
 
-		MetricsURL:SetCounter ('TX')
+		if (SEND_SUCCESS_METRICS) then
+			MetricsURL:SetCounter ('TX')
+		end
 
 		if (method == 'GET') then
 			t:Get (url, headers)
@@ -511,11 +549,13 @@ function urlDo (method, url, data, headers, callback, context, options)
 		if (flags == nil) then
 			flags = {
 				--response_headers_merge_redirects = false,
-				cookies_enable = true
+				cookies_enable = true,
 			}
 		end
 
-		MetricsURL:SetCounter ('TX')
+		if (SEND_SUCCESS_METRICS) then
+			MetricsURL:SetCounter ('TX')
+		end
 
 		if (method == 'GET') then
 			info.TICKET = C4:urlGet (url, headers, false, ReceivedAsync, flags)
@@ -531,7 +571,6 @@ function urlDo (method, url, data, headers, callback, context, options)
 
 		if (info.TICKET and info.TICKET ~= 0) then
 			table.insert (GlobalTicketHandlers, info)
-
 		else
 			MetricsURL:SetCounter ('Error_TX')
 
@@ -545,27 +584,42 @@ function urlDo (method, url, data, headers, callback, context, options)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlGet (url, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_GET')
-	urlDo ('GET', url, data, headers, callback, context, options)
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_GET')
+	end
+	urlDo ('GET', url, nil, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlPost (url, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_POST')
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_POST')
+	end
 	urlDo ('POST', url, data, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlPut (url, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_PUT')
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_PUT')
+	end
 	urlDo ('PUT', url, data, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlDelete (url, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_DELETE')
-	urlDo ('DELETE', url, data, headers, callback, context, options)
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_DELETE')
+	end
+	urlDo ('DELETE', url, nil, headers, callback, context, options)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function urlCustom (url, method, data, headers, callback, context, options)
-	MetricsURL:SetCounter ('TX_' .. method)
+	if (SEND_SUCCESS_METRICS) then
+		MetricsURL:SetCounter ('TX_' .. method)
+	end
 	urlDo (method, url, data, headers, callback, context, options)
 end
