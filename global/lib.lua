@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 49
+COMMON_LIB_VER = 53
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -91,6 +91,7 @@ do -- Set common var IDs
 end
 
 do -- LOCALE FIXING FOR tostring AND tonumber
+	---@diagnostic disable: lowercase-global
 	if (not tostring_native) then
 		tostring_native = tostring
 	end
@@ -141,8 +142,10 @@ do -- LOCALE FIXING FOR tostring AND tonumber
 	if (LOCALE_USES_COMMA_DECIMAL_SEPARATORS) then
 		tonumber = tonumber_expect_comma
 	end
+	---@diagnostic enable: lowercase-global
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function dbg (strDebugText, ...)
 	if (DEBUGPRINT) then
 		local t, ms
@@ -161,6 +164,7 @@ function dbg (strDebugText, ...)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function dbgdump (strDebugText, ...)
 	if (DEBUGPRINT) then
 		hexdump (strDebugText or '')
@@ -168,10 +172,12 @@ function dbgdump (strDebugText, ...)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function gettext (text)
 	return (text)
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function getvartext (str, vars)
 	local escape = function (s)
 		s = tostring (s)
@@ -208,7 +214,7 @@ end
 
 function CopyTable (t, shallowCopy)
 	if (type (t) ~= 'table') then
-		return
+		return nil
 	end
 
 	local seenTables = {}
@@ -465,7 +471,7 @@ function XMLTag (strName, tParams, tagSubTables, xmlEncodeElements, tAttribs, ar
 				XMLEncode (tostring (v)),
 				'"',
 			}
-			a = table.concat (a)
+			local a = table.concat (a)
 			table.insert (attribs, a)
 		end
 		strName = table.concat (attribs, ' ')
@@ -530,7 +536,7 @@ end
 function CreateXML (item, xml)
 	if (type (item) ~= 'table') then
 		print ('Cannot CreateXML on non-table')
-		return
+		return nil
 	end
 
 	local isRoot
@@ -590,49 +596,113 @@ function CreateXML (item, xml)
 	end
 end
 
---[[
-	-- tests on tag = tag
-	local t1 = '<a>b</a><tag>test string</tag><a>b</a>' -- 'test string', nil
-	local t2 = '<a>b</a><tag testattrib="testval" testattrib2="test val">test</tag><a>b</a>' -- test, {testattrib = 'testval', testattrib2 = 'test val'}
-	local t3 = '<a>b</a><ta g>test string</tag><a>b</a>' -- nil, nil
-	local t4 = '<a>b</a><tagattrib>asdf</tagattrib>' -- nil, nil
-	local t5 = '<a>b</a><tag/><a>b</a>' -- '', nil
-	local t6 = '<a>b</a><tag /><a>b</a>' -- '', nil
-	local t7 = '<a>b</a><tag testattrib="testval" testattrib2="test val"/><a>b</a>' -- '', , {testattrib = 'testval', testattrib2 = 'test val'}
-	local t8 = '<a>b</a><tag testattrib="testval" testattrib2="test val" /><a>b</a>' -- '', , {testattrib = 'testval', testattrib2 = 'test val'}
---]]
+--[=[ Tests for XMLCapture
+	local tests = {
+		[[<a>b</a><tag>test string</tag><a>b</a>]], -- 'test string', nil
+		[[<a>b</a><tag testattrib="testval" testattrib2='test val 2'>test</tag><a>b</a>]], -- test, {testattrib = 'testval', testattrib2 = 'test val 2'}
+		[[<a>b</a><ta g>test string</tag><a>b</a>]], -- nil, nil
+		[[<a>b</a><tagattrib>asdf</tagattrib>]], -- nil, nil
+		[[<a>b</a><tag/><a>b</a>]], -- '', nil
+		[[<a>b</a><tag /><a>b</a>]], -- '', nil
+		[[<a>b</a><tag testattrib="testval" testattrib2="test val 2"/><a>b</a>]], -- '', , {testattrib = 'testval', testattrib2 = 'test val 2'}
+		[[<a>b</a><tag testattrib="testval" testattrib2="test val 2" /><a>b</a>]], -- '', , {testattrib = 'testval', testattrib2 = 'test val 2'}
+		[[<tag ia="inner'apos" iq='inner"quote'   emptyA='' emptyQ="" >test</tag>]], -- test, {ia = 'inner\'apos' iq = 'inner"quote' emptyA = '' emptyQ = '' }
+	}
 
-function XMLCapture (xmlString, tag)
+	for i, testString in ipairs (tests) do
+		local content, attributes = XMLCapture (testString, 'tag')
+		print ('--')
+		print (i)
+		print ('--')
+		print (content)
+		print ('--')
+		Print (attributes)
+		print ('--')
+		print ('--')
+	end
+
+--]=]
+
+function XMLCapture (xmlString, tag, init)
 	if (type (xmlString) ~= 'string') then
 		print ('XMLCapture error: xmlString not string:', tostring (xmlString))
-		return
+		return nil, nil, nil, nil
 	end
 	if (type (tag) ~= 'string') then
 		print ('XMLCapture error: tag not string:', tostring (tag))
-		return
+		return nil, nil, nil, nil
 	end
+	if (type (init) ~= 'number') then
+		init = nil
+	end
+
+	local function parseAttributes (attributes)
+		local ret = {}
+		while (#attributes > 0) do
+			if (string.match (attributes, '^%s-%/?%>$')) then
+				break
+			end
+			local _, e, key, quoteChar = string.find (attributes, '^%s*(%S*)=(.)')
+			if (not (key and quoteChar)) then
+				error ('No valid attribute key found: ' .. attributes)
+			end
+			local pattern = '=' .. quoteChar .. '([^' .. quoteChar .. ']-)' .. quoteChar .. '[%s%/%>]'
+			local _, e, value = string.find (attributes, pattern, e - 2)
+			if (not value) then
+				error ('No valid quoted attribute value found: ' .. attributes)
+			end
+			ret [key] = value
+			attributes = string.sub (attributes, e)
+		end
+		return ret
+	end
+
 	-- plain tag
-	local tagContents = string.match (xmlString, '<' .. tag .. '>(.-)</' .. tag .. '>')
+	local s, e, tagContents = string.find (xmlString, '<' .. tag .. '>(.-)</' .. tag .. '>', init)
 	if (tagContents) then
-		return tagContents, nil
+		return tagContents, nil, s, e
 	end
 
 	-- tag with attributes
-	local attributes, tagContents = string.match (xmlString, '<' .. tag .. '%s+(%S.-)>(.-)</' .. tag .. '>')
+	local s, e, attributes, tagContents = string.find (xmlString, '<' .. tag .. '(%s+%S.->)(.-)</' .. tag .. '>', init)
 	if (attributes and tagContents) then
-		return tagContents, attributes
+		local success, ret = pcall (parseAttributes, attributes)
+		if (success) then
+			return tagContents, ret, s, e
+		else
+			print ('XMLCapture failed to parse attributes:', xmlString, ret)
+			return tagContents, attributes, s, e
+		end
 	end
 
 	-- self closing tag
-	local selfClosed = string.match (xmlString, '<' .. tag .. '%s-/>')
-	if (selfClosed) then
-		return '', nil
+	local s, e = string.find (xmlString, '<' .. tag .. '%s-/>', init)
+	if (s and e) then
+		return '', nil, s, e
 	end
 
 	-- self closing tag with attributes
-	local attributes = string.match (xmlString, '<' .. tag .. '%s+(%S.-)%s-/>')
-	if (attributes) then
-		return '', attributes
+	local s, e, attributes = string.find (xmlString, '<' .. tag .. '(%s+%S.-%s-/>)', init)
+	if (s and e and attributes) then
+		local success, ret = pcall (parseAttributes, attributes)
+		if (success) then
+			return '', ret, s, e
+		else
+			print ('XMLCapture failed to parse attributes:', xmlString, ret)
+			return '', attributes, s, e
+		end
+	end
+	return nil, nil, nil, nil
+end
+
+function XMLgCapture (xmlString, tag)
+	local init = 0
+	return function ()
+		local tagContents, attributes, s, e = XMLCapture (xmlString, tag, init)
+		if (e) then
+			init = e
+		end
+		return tagContents, attributes, s, e
 	end
 end
 
@@ -672,7 +742,11 @@ function ConstructJWT (payload, secret, alg)
 			data_encoding = 'NONE',
 		}
 		signature = C4:HMAC (digest, secret, data, options)
-		signature = signature:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+		if (signature) then
+			signature = signature:gsub ('%+', '-'):gsub ('%/', '_'):gsub ('%=', '')
+		else
+			signature = ''
+		end
 	end
 
 	data = data .. '.' .. signature
@@ -681,13 +755,16 @@ function ConstructJWT (payload, secret, alg)
 end
 
 function RefreshNavs ()
+	local onConnect = function (client)
+		client:Write ('<c4soap name="PIP" async="1"></c4soap>\0')
+		client:Close ()
+	end
+	local onError = function (client)
+		client:Close ()
+	end
 	local cli = C4:CreateTCPClient ()
-		:OnConnect (function (client)
-			client:Write ('<c4soap name="PIP" async="1"></c4soap>\0'):Close ()
-		end)
-		:OnError (function (client)
-			client:Close ()
-		end)
+		:OnConnect (onConnect)
+		:OnError (onError)
 
 	cli:Connect ('127.0.0.1', 5020)
 end
@@ -783,7 +860,7 @@ function SaltedEncrypt (key, plaintext)
 		local randomChar = string.char (math.random (0, 255))
 		table.insert (prepend_random, randomChar)
 	end
-	prepend_random = table.concat (prepend_random)
+	local prepend_random = table.concat (prepend_random)
 
 	local data = prepend_random .. plaintext
 
@@ -890,17 +967,17 @@ function GetProject ()
 			table.insert (p, '],')
 			subitem = subitem - 1
 		elseif (string.find (line, '^<id>')) then
-			local id = string.match (line, '<id>(.-)</id>')
+			local id = XMLCapture (line, 'id')
 			if (id) then
 				table.insert (p, '"id" : ' .. id .. ',')
 			end
 		elseif (string.find (line, '^<c4i>')) then
-			local c4i = string.match (line, '<c4i>(.-)</c4i>')
+			local c4i = XMLCapture (line, 'c4i')
 			if (c4i) then
 				table.insert (p, '"c4i" : "' .. c4i .. '",')
 			end
 		elseif (string.find (line, '^<type>')) then
-			local deviceType = string.match (line, '<type>(.-)</type>')
+			local deviceType = XMLCapture (line, 'type')
 			if (deviceType) then
 				table.insert (p, '"deviceType" : ' .. deviceType .. ',')
 			end
@@ -917,7 +994,7 @@ function GetProject ()
 			9 = AGENT
 		]]
 		elseif (string.find (line, '^<name>')) then
-			local name = string.match (line, '<name>(.-)</name>')
+			local name = XMLCapture (line, 'name')
 			if (name) then
 				table.insert (p, '"name" : ' .. JSON:encode (name) .. ',')
 			end
@@ -926,7 +1003,7 @@ function GetProject ()
 
 	table.insert (p, '}')
 
-	p = table.concat (p, '\r\n')
+	local p = table.concat (p, '\r\n')
 
 	p = string.gsub (p, ',%s+%]', '\r\n%]')
 	p = string.gsub (p, ',%s+%}', '\r\n%}')
@@ -1029,7 +1106,7 @@ function GetRandomString (length, alphaFirst)
 		local char = string.sub (allowed, random, random)
 		table.insert (s, char)
 	end
-	s = table.concat (s)
+	local s = table.concat (s)
 	return s
 end
 
@@ -1135,10 +1212,12 @@ function Select (data, ...)
 
 	for i = 1, args.n do
 		local index = args [i]
-		if (index == nil or ret [index] == nil) then
+		if (index == next) then
+			local _
+			_, ret = next (ret)
+		elseif (index == nil or ret [index] == nil) then
 			return nil
-		end
-		if (ret [index] ~= nil) then
+		else
 			ret = ret [index]
 		end
 	end
@@ -1149,14 +1228,14 @@ function GetConnections ()
 	local connectionsXML = C4:GetDriverConfigInfo ('connections')
 
 	local connections = {}
-	for connection in string.gmatch (connectionsXML, '<connection>(.-)</connection>') do
+	for connection in XMLgCapture (connectionsXML, 'connection') do
 		local id = tonumber (XMLCapture (connection, 'id'))
 		if (id) then
 			local classesXML = XMLCapture (connection, 'classes') or ''
 
 			local classes = {}
 
-			for class in string.gmatch (classesXML, '<class>(.-)</class>') do
+			for class in XMLgCapture (classesXML, 'class') do
 				table.insert (classes, {
 					classname = XMLCapture (class, 'classname'),
 					autobind = (XMLCapture (class, 'autobind') == 'True'),
@@ -1189,6 +1268,7 @@ function GetTableSize (t)
 	return size
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function uint16To2Bytes (uint16, isLittleEndian)
 	local b1, b2
 
@@ -1202,6 +1282,7 @@ function uint16To2Bytes (uint16, isLittleEndian)
 	end
 end
 
+---@diagnostic disable-next-line: lowercase-global
 function uint32To4Bytes (uint32, isLittleEndian)
 	local b1, b2, b3, b4
 
@@ -1258,7 +1339,7 @@ function GetTruthy (value, emptyValueIsTrue)
 			ret = false
 		end
 	elseif (type (value) == 'table') then
-		if (not emptyValueIsTrue and next (value == 'nil')) then
+		if (not emptyValueIsTrue and next (value) == 'nil') then
 			ret = false
 		end
 	elseif (type (value) == 'nil') then
