@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 122
+COMMON_MSP_VER = 123
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2636,7 +2636,7 @@ end
 function Navigator:SettingChanged_password (value)
 	local enc = C4:Encrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, value, AES_ENC_DEFAULTS)
 	if (enc) then
-		self.AuthSettings.password = value
+		self.AuthSettings.password = enc
 	end
 	return ('')
 end
