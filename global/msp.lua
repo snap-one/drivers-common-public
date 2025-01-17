@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 123
+COMMON_MSP_VER = 124
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -80,6 +80,7 @@ do -- Globals defined by importing drivers
 
 	--string or bool
 	LOGGED_IN = LOGGED_IN
+	SEEK_NOT_ALLOWED = SEEK_NOT_ALLOWED
 end
 
 do -- define proxy / binding IDs
@@ -1255,6 +1256,10 @@ end
 function Seek (roomId, pos, seekType)
 	if (not (roomId and pos and seekType)) then
 		return
+	end
+
+	if (SEEK_NOT_ALLOWED) then
+		return '<ret><handled>true</handled></ret>'
 	end
 
 	local qId = GetQueueIDByRoomID (roomId)
