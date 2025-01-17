@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 124
+COMMON_MSP_VER = 125
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -236,6 +236,10 @@ function OnDriverLateInit (driverInitType)
 	PersistData.VERSION = PersistData.VERSION or C4:GetDriverConfigInfo ('version')
 
 	if (PersistData.VERSION ~= C4:GetDriverConfigInfo ('version')) then
+		SetTimer ('RefreshNavs', math.random (30, 60) * ONE_SECOND)
+	end
+
+	if (driverInitType == 'DIT_UPDATING') then
 		SetTimer ('RefreshNavs', math.random (30, 60) * ONE_SECOND)
 	end
 
