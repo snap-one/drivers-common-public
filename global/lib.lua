@@ -1,6 +1,6 @@
 -- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 53
+COMMON_LIB_VER = 54
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1396,4 +1396,56 @@ function GetNextSchedulerOccurrence (timerId)
 
 	local timestamp = os.time (date)
 	return timestamp
+end
+
+function GenerateTagChars ()
+	TagCharsByAscii = {}
+	AsciiCharsByTag = {}
+
+	for i = 0x20, 0x3F do
+		local asciiChar = string.char (i)
+		local tagByte = i + 0x80
+		local tagChar = '\xF3\xA0\x80' .. string.char (tagByte)
+		TagCharsByAscii [asciiChar] = tagChar
+		AsciiCharsByTag [tagChar] = asciiChar
+	end
+
+	for i = 0x40, 0x7E do
+		local asciiChar = string.char (i)
+		local tagByte = i + 0x40
+		local tagChar = '\xF3\xA0\x81' .. string.char (tagByte)
+		TagCharsByAscii [asciiChar] = tagChar
+		AsciiCharsByTag [tagChar] = asciiChar
+	end
+end
+
+function MakeTagged (asciiString)
+	if (not TagCharsByAscii) then
+		GenerateTagChars ()
+	end
+	local subFun = function (char)
+		if (TagCharsByAscii [char]) then
+			return TagCharsByAscii [char]
+		else
+			return char
+		end
+	end
+	local taggedString = string.gsub (asciiString, '([%z\1-\127\194-\244][\128-\191]*)', subFun)
+	return taggedString
+
+end
+
+function MakeAscii (taggedString)
+	if (not AsciiCharsByTag) then
+		GenerateTagChars ()
+	end
+	local subFun = function (char)
+		if (AsciiCharsByTag [char]) then
+			return AsciiCharsByTag [char]
+		else
+			return char
+		end
+	end
+	local asciiString = string.gsub (taggedString, '([%z\1-\127\194-\244][\128-\191]*)', subFun)
+	return asciiString
 end
