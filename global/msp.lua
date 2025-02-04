@@ -1,6 +1,6 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 121
+COMMON_MSP_VER = 126
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -80,6 +80,7 @@ do -- Globals defined by importing drivers
 
 	--string or bool
 	LOGGED_IN = LOGGED_IN
+	SEEK_NOT_ALLOWED = SEEK_NOT_ALLOWED
 end
 
 do -- define proxy / binding IDs
@@ -100,7 +101,7 @@ function OnDriverDestroyed (driverInitType)
 
 	KillAllTimers ()
 
-	if (OnDriverDestroyedTasks and type (OnDriverDestroyedTasks) == 'function') then
+	if (type (OnDriverDestroyedTasks) == 'function') then
 		local success, ret = pcall (OnDriverDestroyedTasks, driverInitType)
 		if (success) then
 			if (ret) then
@@ -113,7 +114,7 @@ end
 
 function OnDriverInit (driverInitType)
 	C4:RegisterSystemEvent (C4SystemEvents.OnPIP, 0)
-	if (OnDriverInitTasks and type (OnDriverInitTasks) == 'function') then
+	if (type (OnDriverInitTasks) == 'function') then
 		local success, ret = pcall (OnDriverInitTasks, driverInitType)
 		if (success) then
 			if (ret) then
@@ -238,7 +239,11 @@ function OnDriverLateInit (driverInitType)
 		SetTimer ('RefreshNavs', math.random (30, 60) * ONE_SECOND)
 	end
 
-	if (OnDriverLateInitTasks and type (OnDriverLateInitTasks) == 'function') then
+	if (driverInitType == 'DIT_UPDATING') then
+		SetTimer ('RefreshNavs', math.random (30, 60) * ONE_SECOND)
+	end
+
+	if (type (OnDriverLateInitTasks) == 'function') then
 		local success, ret = pcall (OnDriverLateInitTasks, driverInitType)
 		if (success) then
 			if (ret) then
@@ -296,7 +301,7 @@ function OSE.OnPIP (event)
 
 	RegisterRooms ()
 
-	if (RefreshNavTasks and type (RefreshNavTasks) == 'function') then
+	if (type (RefreshNavTasks) == 'function') then
 		local success, ret = pcall (RefreshNavTasks)
 		if (success) then
 			if (ret) then
@@ -445,7 +450,7 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 		end
 
 		if (itemId) then
-			if (SelectMediaDBItemInRoom and type (SelectMediaDBItemInRoom) == 'function') then
+			if (type (SelectMediaDBItemInRoom) == 'function') then
 				local success, ret = pcall (SelectMediaDBItemInRoom, itemId, roomId)
 				if (success) then
 					if (ret) then
@@ -467,7 +472,7 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 				if (session and session > 0) then
 					JoinRoomToSession (roomId, session)
 				else
-					if (SelectDefaultItemInRoom and type (SelectDefaultItemInRoom) == 'function') then
+					if (type (SelectDefaultItemInRoom) == 'function') then
 						local success, ret = pcall (SelectDefaultItemInRoom, roomId)
 						if (success) then
 							if (ret) then
@@ -555,7 +560,7 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 		nav.roomId = tonumber (tParams.ROOMID)
 		local seq = tParams.SEQ
 
-		if (NavigatorSerializedArgs and type (NavigatorSerializedArgs) == 'table') then
+		if (type (NavigatorSerializedArgs) == 'table') then
 			for arg, serialized in pairs (NavigatorSerializedArgs) do
 				if (args [arg] and serialized) then
 					args [arg] = Deserialize (args [arg])
@@ -1257,6 +1262,10 @@ function Seek (roomId, pos, seekType)
 		return
 	end
 
+	if (SEEK_NOT_ALLOWED) then
+		return '<ret><handled>true</handled></ret>'
+	end
+
 	local qId = GetQueueIDByRoomID (roomId)
 
 	local thisQ = SongQs [qId]
@@ -1509,6 +1518,9 @@ function CheckRoomHasDigitalAudio (roomId)
 	if (roomId == nil) then
 		return false
 	end
+	if (not (RoomIDs [roomId])) then
+		return false
+	end
 	C4_DIGITAL_AUDIO = next (C4:GetDevicesByC4iName ('control4_digitalaudio.c4i'))
 	local hasC4DA = false
 	if (C4_DIGITAL_AUDIO) then
@@ -1532,7 +1544,12 @@ function MakeList (response, collection, options)
 		collection.image_list = MakeImageList (collection)
 		if (SUPPORTS_DEFAULT_AND_ACTIONS and options.makeDefaultAction) then
 			if (collection.actions_list and not (collection.default_action)) then
-				local firstAction = string.match (collection.actions_list, '(%w+)')
+				local firstAction
+				if (type (collection.actions_list) == 'string') then
+					firstAction = string.match (collection.actions_list, '(%w+)')
+				elseif (type (collection.actions_list) == 'table') then
+					firstAction = collection.actions_list [1]
+				end
 				if (firstAction) then
 					collection.default_action = firstAction
 				end
@@ -1557,14 +1574,19 @@ function MakeList (response, collection, options)
 		end
 		if (SUPPORTS_DEFAULT_AND_ACTIONS and options.makeDefaultAction) then
 			if (item.actions_list and not (item.default_action)) then
-				local firstAction = string.match (item.actions_list, '(%w+)')
+				local firstAction
+				if (type (item.actions_list) == 'string') then
+					firstAction = string.match (item.actions_list, '(%w+)')
+				elseif (type (item.actions_list) == 'table') then
+					firstAction = item.actions_list [1]
+				end
 				if (firstAction) then
 					item.default_action = firstAction
 				end
 			end
 		end
 
-		if (NavigatorSerializedArgs and type (NavigatorSerializedArgs) == 'table') then
+		if (type (NavigatorSerializedArgs) == 'table') then
 			for arg, serialized in pairs (NavigatorSerializedArgs) do
 				if (item [arg] and serialized) then
 					item [arg] = Serialize (item [arg])
@@ -1669,13 +1691,21 @@ function UpdateQueue (qId, options)
 
 			if (SUPPORTS_DEFAULT_AND_ACTIONS) then
 				if (item.default_action == nil) then
-					if (string.find (item.actions_list or '', '^QueueSelect')) then
-						item.default_action = 'QueueSelect'
+					if (type (item.actions_list) == 'string') then
+						if (string.find (item.actions_list or '', '^QueueSelect')) then
+							item.default_action = 'QueueSelect'
+						end
+					elseif (type (item.actions_list) == 'table') then
+						for _, action in ipairs (item.actions_list) do
+							if (action == 'QueueSelect') then
+								item.default_action = 'QueueSelect'
+							end
+						end
 					end
 				end
 			end
 
-			if (NavigatorSerializedArgs and type (NavigatorSerializedArgs) == 'table') then
+			if (type (NavigatorSerializedArgs) == 'table') then
 				for arg, serialized in pairs (NavigatorSerializedArgs) do
 					if (item [arg] and serialized) then
 						item [arg] = Serialize (item [arg])
@@ -1935,7 +1965,7 @@ function OnQueueStateChanged (idBinding, tParams)
 					UpdateProgress (qId)
 				end
 
-				if (ProgressMonitor and type (ProgressMonitor) == 'function') then
+				if (type (ProgressMonitor) == 'function') then
 					local success, ret = pcall (ProgressMonitor, qId)
 					if (success) then
 						if (ret) then
@@ -2580,8 +2610,11 @@ end
 function Navigator:SettingChanged (idBinding, seq, args)
 	local success, ret
 
-	if (Navigator ['SettingChanged_' .. args.PropertyName] and type (Navigator ['SettingChanged_' .. args.PropertyName]) == 'function') then
-		success, ret = pcall (Navigator ['SettingChanged_' .. args.PropertyName], self, args.Value)
+	local functionName = 'SettingChanged_' .. args.PropertyName
+	local settingChangedFunction = Select (Navigator, functionName)
+
+	if (type (settingChangedFunction) == 'function') then
+		success, ret = pcall (settingChangedFunction, self, args.Value)
 	end
 	if (success == true) then
 		return (ret)
@@ -2615,7 +2648,7 @@ end
 function Navigator:SettingChanged_password (value)
 	local enc = C4:Encrypt ('AES-256-CBC', C4:GetDriverConfigInfo ('model'), nil, value, AES_ENC_DEFAULTS)
 	if (enc) then
-		self.AuthSettings.password = value
+		self.AuthSettings.password = enc
 	end
 	return ('')
 end
