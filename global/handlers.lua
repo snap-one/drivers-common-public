@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 29
+COMMON_HANDLERS_VER = 31
 
 do -- define globals
 	DEBUG_RFN = false
@@ -512,6 +512,14 @@ end
 function OnSystemEvent (event)
 	local eventName = string.match (event, '.-name="(.-)"')
 
+	if (eventName == 'OnDataToUI') then
+		local luaOutputString = '<devicecommand><command>LUA_OUTPUT</command>'
+		local isLuaOutput = string.match (event, luaOutputString)
+		if (isLuaOutput) then
+			return
+		end
+	end
+
 	local suppressDebug = Select (OSE, 'suppressDebug', eventName)
 
 	if (not suppressDebug) then
@@ -853,7 +861,7 @@ function UIRequest (strCommand, tParams)
 
 	local success, ret
 
-	local uirFunction = Select (UIR [strCommand])
+	local uirFunction = Select (UIR, strCommand)
 
 	if (type (uirFunction) == 'function') then
 		success, ret = pcall (uirFunction, tParams)
