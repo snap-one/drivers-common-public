@@ -1,6 +1,6 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 54
+COMMON_LIB_VER = 55
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -87,6 +87,18 @@ do -- Set common var IDs
 		['ZIPCODE'] = 1000,
 		['LATITUDE'] = 1001,
 		['LONGITUDE'] = 1002,
+	}
+
+	PROJECT_ITEM_TYPES = {
+		ROOT = 1,
+		SITE = 2,
+		BUILDING = 3,
+		FLOOR = 4,
+		ROOM = 5,
+		DEVICE = 6,
+		PROXY = 7,
+		ROOM_DEVICE = 8,
+		AGENT = 9,
 	}
 end
 
