@@ -27,7 +27,7 @@ function SSDP:new (searchTarget, options)
 		bcIP = '255.255.255.255',
 		mcOnly = options.mcOnly,
 		bcOnly = options.bcOnly,
-		friendlyNameTag = options.friendlyNameTag or 'friendlyName'
+		friendlyNameTag = options.friendlyNameTag or 'friendlyName',
 	}
 
 	setmetatable (ssdp, self)
@@ -143,7 +143,6 @@ function SSDP:setupC4Connection ()
 			if (self.mcConnected) then
 				self:sendDiscoveryPacket (self.mcBinding)
 			end
-
 		elseif (idBinding == self.bcBinding) then
 			self.bcConnected = (strStatus == 'ONLINE')
 			if (self.bcConnected) then
@@ -196,7 +195,6 @@ function SSDP:disconnect ()
 end
 
 function SSDP:sendDiscoveryPacket (binding)
-
 	local ip, online
 
 	if (binding == self.mcBinding) then
@@ -208,7 +206,6 @@ function SSDP:sendDiscoveryPacket (binding)
 	end
 
 	if (ip and online) then
-
 		local packet = {
 			'M-SEARCH * HTTP/1.1',
 			'HOST: ' .. ip .. ':1900',
@@ -242,10 +239,8 @@ function SSDP:parseResponse (data)
 
 	if (headers.HTTP and headers.HTTP == '1.1 200 OK') then
 		alive = true
-
 	elseif (headers.NOTIFY and headers.NTS and headers.NTS == 'ssdp:alive') then
 		alive = true
-
 	elseif (headers.NOTIFY and headers.NTS and headers.NTS == 'ssdp:byebye') then
 		byebye = true
 	end
@@ -319,7 +314,6 @@ function SSDP:parseResponse (data)
 				self:updateDevices ()
 			end
 		end
-
 	elseif (byebye) then
 		if (headers.USN) then
 			local usnUUID = string.match (headers.USN, 'uuid:(.+)')
@@ -329,7 +323,6 @@ function SSDP:parseResponse (data)
 end
 
 function SSDP:deviceOffline (uuid)
-
 	local deviceGoOfflineNow = function (device)
 		local location = device.LOCATION
 		self.locations [location] = CancelTimer (self.locations [location])
@@ -385,7 +378,7 @@ function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
 
 		local friendlyName = XMLDecode (string.match (data, '<' .. self.friendlyNameTag .. '>(.-)</' .. self.friendlyNameTag .. '>'))
 
-		for k,v in pairs (tHeaders) do
+		for k, v in pairs (tHeaders) do
 			if (string.upper (k) == 'APPLICATION-URL') then
 				local dialServer = v
 				if (string.sub (dialServer, -1, -1) ~= '/') then
@@ -405,7 +398,6 @@ function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
 			pcall (self.ProcessXML, self, context.usnUUID, data, tHeaders)
 		end
 		self:updateDevices ()
-
 	end
 end
 

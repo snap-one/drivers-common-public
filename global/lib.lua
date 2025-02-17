@@ -814,9 +814,9 @@ function GetFileName (deviceId)
 
 	local _, data = next (info)
 
-	if (data.driverFileName) then
-		return data.driverFileName
-	end
+	local driverFileName = Select (data, 'driverFileName')
+
+	return driverFileName
 end
 
 function F2C (f)

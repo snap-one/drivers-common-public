@@ -35,8 +35,8 @@ function oauth:new (tParams, providedRefreshToken)
 
 		USE_PKCE = tParams.USE_PKCE,
 
-		MAX_EXPIRES_IN = tParams.MAX_EXPIRES_IN or 86400,			-- one day
-		DEFAULT_EXPIRES_IN = tParams.DEFAULT_EXPIRES_IN or 3600,	-- one hour
+		MAX_EXPIRES_IN = tParams.MAX_EXPIRES_IN or 86400,  -- one day
+		DEFAULT_EXPIRES_IN = tParams.DEFAULT_EXPIRES_IN or 3600, -- one hour
 
 		notifyHandler = {},
 		Timer = {},
@@ -64,7 +64,7 @@ function oauth:new (tParams, providedRefreshToken)
 			if (errString) then
 				o.metrics:SetString ('Error_DecryptRefreshToken', errString)
 			end
-				if (refreshToken) then
+			if (refreshToken) then
 				initialRefreshToken = refreshToken
 			end
 		end
@@ -109,7 +109,7 @@ function oauth:MakeState (contextInfo, extraParamsForAuthLink, uriToCompletePage
 	local context = {
 		contextInfo = contextInfo,
 		state = state,
-		extraParamsForAuthLink = extraParamsForAuthLink
+		extraParamsForAuthLink = extraParamsForAuthLink,
 	}
 
 	self.metrics:SetCounter ('MakeStateAttempt')
@@ -210,9 +210,9 @@ function oauth:CheckState (state, contextInfo, nonce)
 		contextInfo = {}
 	end
 
-	local url = MakeURL (self.REDIRECT_URI .. 'state', {state = state, nonce = nonce})
+	local url = MakeURL (self.REDIRECT_URI .. 'state', { state = state, nonce = nonce, })
 
-	self:urlGet (url, nil, 'CheckStateResponse', {state = state, contextInfo = contextInfo})
+	self:urlGet (url, nil, 'CheckStateResponse', { state = state, contextInfo = contextInfo, })
 end
 
 function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, context, url)
@@ -235,10 +235,8 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 		if (self.TOKEN_ENDPOINT_URI) then
 			self:GetUserToken (data.code, contextInfo)
 		end
-
 	elseif (responseCode == 204) then
 		self:notify ('LinkCodeWaiting', contextInfo)
-
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
@@ -249,7 +247,6 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 
 		self.metrics:SetCounter ('LinkCodeError')
 		self:notify ('LinkCodeError', contextInfo)
-
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
@@ -266,7 +263,6 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 			self.metrics:SetString ('LinkCodeDeniedDescription', data.error_description)
 		end
 		self:notify ('LinkCodeDenied', contextInfo, data.error, data.error_description, data.error_uri)
-
 	elseif (responseCode == 404) then
 		-- state doesn't exist
 
@@ -315,7 +311,7 @@ function oauth:GetUserToken (code, contextInfo)
 			end
 		end
 
-		self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
+		self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
 	end
 end
 
@@ -369,7 +365,7 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 	end
 	self.Timer.RefreshingToken = SetTimer (self.Timer.RefreshingToken, 30 * ONE_SECOND, _timer)
 
-	self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
+	self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
 end
 
 function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
@@ -404,7 +400,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self.SCOPE = data.scope or self.SCOPE
 
-		self.EXPIRES_IN = tonumber(data.expires_in) or self.EXPIRES_IN or self.DEFAULT_EXPIRES_IN
+		self.EXPIRES_IN = tonumber (data.expires_in) or self.EXPIRES_IN or self.DEFAULT_EXPIRES_IN
 
 		if (self.EXPIRES_IN and self.REFRESH_TOKEN) then
 			local _timer = function (timer)
@@ -428,7 +424,6 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 
 		self.metrics:SetCounter ('AccessTokenGranted')
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
-
 	elseif (responseCode >= 400 and responseCode < 500) then
 		self.ACCESS_TOKEN = nil
 		self.REFRESH_TOKEN = nil
