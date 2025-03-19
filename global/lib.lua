@@ -1444,7 +1444,6 @@ function MakeTagged (asciiString)
 	end
 	local taggedString = string.gsub (asciiString, '([%z\1-\127\194-\244][\128-\191]*)', subFun)
 	return taggedString
-
 end
 
 function MakeAscii (taggedString)
