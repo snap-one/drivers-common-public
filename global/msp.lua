@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 126
+COMMON_MSP_VER = 127
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1760,8 +1760,8 @@ function UpdateProgress (qId)
 		if (UPDATE_FREQ) then
 			if (thisQ.STREAM) then
 				args = {
-					length = 1,
-					offset = 1,
+					length = GetTimeNumber (thisQ.CurrentTrackElapsed),
+					offset = GetTimeNumber (thisQ.CurrentTrackElapsed),
 					label = GetTimeString (thisQ.CurrentTrackElapsed),
 					canSeek = false,
 				}
