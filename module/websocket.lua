@@ -1,6 +1,6 @@
--- Copyright 2023 Snap One, LLC. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 11
+COMMON_WEBSOCKET_VER = 12
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -24,9 +24,11 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 		return ws
 	end
 
-	local protocol, host, port, resource -- important values to be incorporated into our WebSocket object
+	-- important values to be incorporated into our WebSocket object
+	local protocol, host, port, resource
 
-	local rest, hostport -- temporary values for parsing
+	-- temporary values for parsing
+	local rest, hostport
 
 	protocol, rest = string.match (url or '', '(wss?)://(.*)')
 
@@ -40,8 +42,10 @@ function WebSocket:new (url, additionalHeaders, wssOptions)
 
 	if (not (host and port)) then
 		host = hostport
-		if (protocol == 'ws') then port = 80
-		elseif (protocol == 'wss') then port = 443
+		if (protocol == 'ws') then
+			port = 80
+		elseif (protocol == 'wss') then
+			port = 443
 		end
 	end
 
@@ -168,15 +172,15 @@ function WebSocket:Send (s)
 
 		table.insert (pkt, self:Mask (s, mask))
 
-		pkt = table.concat (pkt)
+		local pkt = table.concat (pkt)
 		if (DEBUG_WEBSOCKET) then
-			local d = {'', 'TX'}
+			local d = { '', 'TX', }
 
 			table.insert (d, '')
 			table.insert (d, s)
 			table.insert (d, '')
 
-			d = table.concat (d, '\r\n')
+			local d = table.concat (d, '\r\n')
 
 			print (d)
 		end
@@ -204,7 +208,7 @@ function WebSocket:SetClosedByRemoteFunction (f)
 		local success, ret = pcall (f, websocket)
 		if (success == false) then
 			self.metrics:SetCounter ('Error_ClosedByRemoteCallback')
-			print ('Websocket callback ClosedByRemote error: ', ret, data)
+			print ('Websocket callback ClosedByRemote error: ', ret)
 		end
 	end
 	self.ClosedByRemote = _f
@@ -217,7 +221,7 @@ function WebSocket:SetEstablishedFunction (f)
 		local success, ret = pcall (f, websocket)
 		if (success == false) then
 			self.metrics:SetCounter ('Error_EstablishedCallback')
-			print ('Websocket callback Established error: ', ret, data)
+			print ('Websocket callback Established error: ', ret)
 		end
 	end
 	self.Established = _f
@@ -230,7 +234,7 @@ function WebSocket:SetOfflineFunction (f)
 		local success, ret = pcall (f, websocket)
 		if (success == false) then
 			self.metrics:SetCounter ('Error_OfflineCallback')
-			print ('Websocket callback Offline error: ', ret, data)
+			print ('Websocket callback Offline error: ', ret)
 		end
 	end
 	self.Offline = _f
@@ -301,7 +305,7 @@ function WebSocket:MakeHeaders ()
 
 	table.insert (headers, '\r\n')
 
-	headers = table.concat (headers, '\r\n')
+	local headers = table.concat (headers, '\r\n')
 
 	return headers
 end
@@ -317,6 +321,8 @@ function WebSocket:ParsePacket (strData)
 end
 
 function WebSocket:parseWSPacket ()
+	--diagnostic disables are because Driverworks embeds lpack which has different formats to Lua5.3 string.pack/unpack
+	---@diagnostic disable-next-line: deprecated
 	local _, h1, h2, b1, b2, b3, b4, b5, b6, b7, b8 = string.unpack (self.buf, 'bbbbbbbbbb')
 
 	local final = (bit.band (h1, 0x80) == 0x80)
@@ -325,8 +331,10 @@ function WebSocket:parseWSPacket ()
 	local rsv3 = (bit.band (h1, 0x10) == 0x10)
 	local opcode = bit.band (h1, 0x0F)
 
+	---@diagnostic disable-next-line: param-type-mismatch
 	local masked = (bit.band (h2, 0x80) == 0x80)
 	local mask
+	---@diagnostic disable-next-line: param-type-mismatch
 	local len = bit.band (h2, 0x7F)
 
 	local msglen = 0
@@ -383,19 +391,16 @@ function WebSocket:parseWSPacket ()
 			if (self.ClosedByRemote) then
 				self:ClosedByRemote ()
 			end
-
 		elseif (opcode == 0x09) then -- ping control frame
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PING')
 			end
 			self:Pong ()
-
 		elseif (opcode == 0x0A) then -- pong control frame
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PONG')
 			end
 			self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
-
 		elseif (opcode == 0x00) then -- continuation frame
 			if (not self.fragment) then
 				self.metrics:SetCounter ('Error_FramesOutOfOrder')
@@ -404,7 +409,6 @@ function WebSocket:parseWSPacket ()
 				return
 			end
 			self.fragment = self.fragment .. thisFragment
-
 		elseif (opcode == 0x01 or opcode == 0x02) then -- non-control frame, beginning of fragment
 			self.fragment = thisFragment
 		end
@@ -414,13 +418,13 @@ function WebSocket:parseWSPacket ()
 			self.fragment = nil
 
 			if (DEBUG_WEBSOCKET) then
-				local d = {'', 'RX'}
+				local d = { '', 'RX', }
 
 				table.insert (d, '')
 				table.insert (d, data)
 				table.insert (d, '')
 
-				d = table.concat (d, '\r\n')
+				local d = table.concat (d, '\r\n')
 
 				print (d)
 			end
@@ -451,12 +455,11 @@ function WebSocket:parseHTTPPacket ()
 	if (EOH and headers ['SEC-WEBSOCKET-ACCEPT']) then
 		self.buf = string.sub (self.buf, EOH + 4)
 		local check = self.key .. '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-		local hash = C4:Hash ('sha1', check, {['return_encoding'] = 'BASE64'})
+		local hash = C4:Hash ('SHA1', check, { ['return_encoding'] = 'BASE64', })
 
 		if (headers ['SEC-WEBSOCKET-ACCEPT'] == hash and
-			string.lower (headers ['UPGRADE']) == 'websocket' and
-			string.lower (headers ['CONNECTION']) == 'upgrade') then
-
+				string.lower (headers ['UPGRADE']) == 'websocket' and
+				string.lower (headers ['CONNECTION']) == 'upgrade') then
 			print ('WS ' .. self.url .. ' running')
 
 			self.running = true
@@ -557,7 +560,7 @@ function WebSocket:Mask (s, mask)
 		table.insert (packet, char)
 	end
 
-	packet = table.concat (packet)
+	local packet = table.concat (packet)
 	return (packet)
 end
 

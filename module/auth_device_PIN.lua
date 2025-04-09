@@ -1,6 +1,6 @@
--- Copyright 2019 Control4 Corporation. All rights reserved.
+-- Copyright 2024 Snap One, LLC. All rights reserved.
 
-AUTH_DEVICE_PIN_VER = 6
+AUTH_DEVICE_PIN_VER = 7
 
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
@@ -49,10 +49,10 @@ function oauth:GetPINCode (contextInfo, extras)
 	local data = MakeURL (nil, args)
 
 	local headers = {
-		['Content-Type'] = 'application/x-www-form-urlencoded'
+		['Content-Type'] = 'application/x-www-form-urlencoded',
 	}
 
-	self:urlPost (url, data, headers, 'GetPINCodeResponse', {contextInfo = contextInfo})
+	self:urlPost (url, data, headers, 'GetPINCodeResponse', { contextInfo = contextInfo, })
 end
 
 function oauth:GetPINCodeResponse (strError, responseCode, tHeaders, data, context, url)
@@ -68,7 +68,7 @@ function oauth:GetPINCodeResponse (strError, responseCode, tHeaders, data, conte
 		self.device_code = data.device_code
 		local user_code = data.user_code
 		local verification_url = data.verification_url
-		local expires_in = tonumber(data.expires_in) or (5 * ONE_MINUTE)
+		local expires_in = tonumber (data.expires_in) or (5 * ONE_MINUTE)
 		local interval = data.interval or 5
 
 		if (self.notifyHandler.PINCodeReceived) then
@@ -110,10 +110,10 @@ function oauth:CheckPINCode (contextInfo)
 	local data = MakeURL (nil, args)
 
 	local headers = {
-		['Content-Type'] = 'application/x-www-form-urlencoded'
+		['Content-Type'] = 'application/x-www-form-urlencoded',
 	}
 
-	self:urlPost (url, data, headers, 'CheckPINCodeResponse', {contextInfo = contextInfo})
+	self:urlPost (url, data, headers, 'CheckPINCodeResponse', { contextInfo = contextInfo, })
 end
 
 function oauth:CheckPINCodeResponse (strError, responseCode, tHeaders, data, context, url)
@@ -131,12 +131,10 @@ function oauth:CheckPINCodeResponse (strError, responseCode, tHeaders, data, con
 		CancelTimer (self.Timer.GetPINCodeExpired)
 
 		self:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
-
 	elseif (responseCode == 400) then
 		if (self.notifyHandler.PINCodeWaiting) then
 			self.notifyHandler.PINCodeWaiting (contextInfo)
 		end
-
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
@@ -174,7 +172,7 @@ function oauth:RefreshToken (contextInfo)
 		['Content-Type'] = 'application/x-www-form-urlencoded',
 	}
 
-	self:urlPost (url, data, headers, 'GetTokenResponse', {contextInfo = contextInfo})
+	self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
 end
 
 function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
@@ -209,7 +207,6 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 		if (self.notifyHandler.AccessTokenGranted) then
 			self.notifyHandler.AccessTokenGranted (contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 		end
-
 	elseif (responseCode >= 400 and responseCode < 500) then
 		if (self.notifyHandler.AccessTokenDenied) then
 			self.notifyHandler.AccessTokenDenied (contextInfo, data.error, data.error_description, data.error_uri)
@@ -227,7 +224,7 @@ function oauth:urlDo (method, url, data, headers, callback, context)
 end
 
 function oauth:urlGet (url, headers, callback, context)
-	self:urlDo ('GET', url, data, headers, callback, context)
+	self:urlDo ('GET', url, nil, headers, callback, context)
 end
 
 function oauth:urlPost (url, data, headers, callback, context)
@@ -239,7 +236,7 @@ function oauth:urlPut (url, data, headers, callback, context)
 end
 
 function oauth:urlDelete (url, headers, callback, context)
-	self:urlDo ('DELETE', url, data, headers, callback, context)
+	self:urlDo ('DELETE', url, nil, headers, callback, context)
 end
 
 function oauth:urlCustom (url, method, data, headers, callback, context)

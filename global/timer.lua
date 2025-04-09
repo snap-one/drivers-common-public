@@ -2,7 +2,7 @@
 
 COMMON_TIMER_VER = 11
 
-do	--Globals
+do --Globals
 	Timer = Timer or {}
 	TimerFunctions = TimerFunctions or {}
 
@@ -56,7 +56,7 @@ function SetTimer (timerId, delay, timerFunction, repeating)
 		timerFunction = nil
 	end
 
-	if (delay > ((2^31) - 1)) then
+	if (delay > ((2 ^ 31) - 1)) then
 		print ('Timer not created: ' .. tostring (timerId), 'delay exceeded max value (2^31 - 1)')
 		return
 	end
@@ -138,7 +138,6 @@ function ChangeTimer (timerId, delay, timerFunction, repeating)
 	if (delay == nil) then
 		TimerFunctions [timer] = timerFunction
 		return timer
-
 	else
 		return (SetTimer (timerId, delay, timerFunction, repeating))
 	end
