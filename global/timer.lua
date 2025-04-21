@@ -1,6 +1,6 @@
--- Copyright 2022 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_TIMER_VER = 11
+COMMON_TIMER_VER = 12
 
 do --Globals
 	Timer = Timer or {}
@@ -51,6 +51,14 @@ end
 
 function SetTimer (timerId, delay, timerFunction, repeating)
 	CancelTimer (timerId)
+
+	if (type (timerId) == 'nil') then
+		local output = {
+			'SetTimer anonymous timerId',
+			tostring (debug.getinfo(2, 'n').name),
+		}
+		dbg (table.concat (output, ' : '))
+	end
 
 	if (type (timerFunction) ~= 'function') then
 		timerFunction = nil
