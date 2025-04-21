@@ -1,6 +1,6 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 12
+COMMON_WEBSOCKET_VER = 13
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -90,16 +90,6 @@ end
 function WebSocket:delete ()
 	self.deleteAfterClosing = true
 	self:Close ()
-	if (WebSocket.Sockets) then
-		if (self.url) then
-			WebSocket.Sockets [self.url] = nil
-		end
-		if (self.netBinding) then
-			OCS [self.netBinding] = nil
-			RFN [self.netBinding] = nil
-			WebSocket.Sockets [self.netBinding] = nil
-		end
-	end
 
 	self.metrics:SetCounter ('Delete')
 	return nil
@@ -134,11 +124,27 @@ function WebSocket:Close ()
 		C4:NetDisconnect (self.netBinding, self.port)
 		if (self.deleteAfterClosing) then
 			self.deleteAfterClosing = nil
+
+			if (WebSocket.Sockets) then
+				if (self.url) then
+					WebSocket.Sockets [self.url] = nil
+				end
+				if (self.netBinding) then
+					OCS [self.netBinding] = nil
+					RFN [self.netBinding] = nil
+					WebSocket.Sockets [self.netBinding] = nil
+				end
+			end
+
 			C4:SetBindingAddress (self.netBinding, '')
 		end
 	end
 
-	self.ClosingTimer = SetTimer (self.ClosingTimer, 3 * ONE_SECOND, _timer)
+	self.PingTimer = CancelTimer (self.PingTimer)
+	self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
+
+	local timerId = 'Websocket:' .. self.url .. ':Closing'
+	SetTimer (timerId, 3 * ONE_SECOND, _timer)
 
 	return self
 end
@@ -484,7 +490,8 @@ function WebSocket:Ping ()
 			print ('WS ' .. self.url .. ' appears disconnected - timed out waiting for PONG')
 			self:Close ()
 		end
-		self.PongResponseTimer = SetTimer (self.PongResponseTimer, self.pong_response_interval * ONE_SECOND, _timer)
+		local timerId = 'Websocket:' .. self.url .. ':PongResponse'
+		self.PongResponseTimer = SetTimer (timerId, self.pong_response_interval * ONE_SECOND, _timer)
 
 		self:sendToNetwork (pkt)
 	end
@@ -513,7 +520,8 @@ function WebSocket:ConnectionChanged (strStatus)
 		local _timer = function (timer)
 			self:Ping ()
 		end
-		self.PingTimer = SetTimer (self.PingTimer, self.ping_interval * ONE_SECOND, _timer, true)
+		local timerId = 'Websocket:' .. self.url .. ':Ping'
+		self.PingTimer = SetTimer (timerId, self.ping_interval * ONE_SECOND, _timer, true)
 		self.metrics:SetCounter ('Connected')
 		print ('WS ' .. self.url .. ' connected')
 	else
