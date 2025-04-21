@@ -1,6 +1,6 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_SSDP_VER = 9
+COMMON_SSDP_VER = 10
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -28,6 +28,7 @@ function SSDP:new (searchTarget, options)
 		mcOnly = options.mcOnly,
 		bcOnly = options.bcOnly,
 		friendlyNameTag = options.friendlyNameTag or 'friendlyName',
+		rescanInterval = options.rescanInterval or (5 * ONE_MINUTE),
 	}
 
 	setmetatable (ssdp, self)
@@ -76,7 +77,8 @@ function SSDP:StartDiscovery (resetLocations)
 		self:connect ()
 	end
 
-	self.repeatingDiscoveryTimer = SetTimer (self.repeatingDiscoveryTimer, 5 * ONE_MINUTE, _timer, true)
+	local timerId = 'SSDP:' .. self.searchTarget
+	self.repeatingDiscoveryTimer = SetTimer (timerId, self.rescanInterval, _timer, true)
 end
 
 function SSDP:StopDiscovery (resetLocations)
@@ -251,6 +253,9 @@ function SSDP:parseResponse (data)
 			interval = string.match (headers ['CACHE-CONTROL'], 'max-age = (%d+)')
 		end
 		interval = tonumber (interval) or 1800
+		if (interval < self.rescanInterval) then
+			interval = self.rescanInterval
+		end
 
 		if (headers.LOCATION and headers.USN) then
 			local location = headers.LOCATION
@@ -302,14 +307,15 @@ function SSDP:parseResponse (data)
 				end
 
 				local _timer = function (timer)
-					self.locations [location] = nil
+					self.locations [location] = CancelTimer (self.locations [location])
 					for uuid, device in pairs (self.devices or {}) do
 						if (device.LOCATION == location) then
 							self:deviceOffline (uuid)
 						end
 					end
 				end
-				self.locations [location] = SetTimer (self.locations [location], interval * ONE_SECOND * 1.005, _timer)
+				local timerId = 'SSDP:' .. self.searchTarget .. ':' .. location
+				self.locations [location] = SetTimer (timerId, interval * ONE_SECOND * 1.005, _timer)
 
 				self:updateDevices ()
 			end
@@ -355,7 +361,8 @@ function SSDP:updateDevices ()
 		end
 	end
 
-	self.updateDevicesTimer = SetTimer (self.updateDevicesTimer, ONE_SECOND, _timer)
+	local timerId = 'SSDP:' .. self.searchTarget .. ':updateDevices'
+	SetTimer (timerId, ONE_SECOND, _timer)
 end
 
 function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
