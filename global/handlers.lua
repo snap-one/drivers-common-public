@@ -186,6 +186,13 @@ end
 	115	OnEventModified
 	116	OnEventRemoved
 	117	OnZigbeeNetworkHealth
+	118	OnZigbeeDuplicateMesh
+	119	OnConnectionAuthorized
+	120	OnAuthorizedConnectionDisconnected
+	121	OnNetworkBindingAddressChanged
+	122	OnProjectLoading
+	123	OnProjectRestored
+	124	OnZigbeeNetworkBusy
 ]]
 
 do --Globals
