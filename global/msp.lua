@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 127
+COMMON_MSP_VER = 128
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -77,6 +77,7 @@ do -- Globals defined by importing drivers
 	NavigatorSerializedArgs = NavigatorSerializedArgs
 	DEFAULT_QUEUE_ACTIONS_LIST = DEFAULT_QUEUE_ACTIONS_LIST
 	APIAuth = APIAuth
+	UserVariables = UserVariables
 
 	--string or bool
 	LOGGED_IN = LOGGED_IN
@@ -225,6 +226,16 @@ function OnDriverLateInit (driverInitType)
 
 	SUPPORTS_FAVORITE_TO_ROOM = VersionCheck ('3.0.0')
 	SUPPORTS_FAVORITE_TO_HOME = VersionCheck ('4.0.0')
+
+	IS_RYFF_STANDALONE = false
+	local systemType = C4:GetSystemType ()
+	if (systemType == 'XDT_SA1') then
+		IS_RYFF_STANDALONE = true
+	end
+
+	if (IS_RYFF_STANDALONE) then
+		SUPPORTS_FAVORITE_TO_ROOM = false
+	end
 
 	HomeTabId = 'Library'
 	HomeScreenId = 'LibraryScreen'
