@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 128
+COMMON_MSP_VER = 129
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -662,8 +662,8 @@ function NetworkError (strError)
 	dbg ('Network error: ' .. (strError or ''))
 	local params = {
 		Id = 'ErrorHandler',
-		Title = '',
-		Message = 'No response to this request. Please try again.',
+		Title = gettext ('Error'),
+		Message = gettext ('No response to this request. Please try again.'),
 	}
 	SendEvent (MSP_PROXY, nil, nil, 'DriverNotification', params)
 end
@@ -2573,8 +2573,8 @@ end
 function Navigator:LogOutCommand (idBinding, seq, args)
 	local params = {
 		Id = 'ConfirmLogOut',
-		Title = 'Confirm Log Out?',
-		Message = 'Are you sure you want to log out?',
+		Title = gettext ('Confirm Log Out?'),
+		Message = gettext ('Are you sure you want to log out?'),
 	}
 	SendEvent (MSP_PROXY, self.navId, nil, 'DriverNotification', params)
 	return ('')
@@ -2667,11 +2667,11 @@ end
 function Navigator:GetSettings_status ()
 	local status
 	if (LOGGED_IN == true) then
-		status = 'Logged In'
+		status = gettext ('Logged In')
 	elseif (LOGGED_IN) then
 		status = LOGGED_IN
 	else
-		status = 'Logged Out'
+		status = gettext ('Logged Out')
 	end
 	return status or ''
 end
