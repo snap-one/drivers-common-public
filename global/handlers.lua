@@ -339,6 +339,7 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 end
 
 function OnConnectionStatusChanged (idBinding, nPort, strStatus)
+	WebSocketPrint("OnConnectionStatusChanged():Callback PRINT")
 	local suppressDebug = Select (OCS, 'suppressDebug', idBinding)
 
 	if (not suppressDebug) then

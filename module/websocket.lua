@@ -102,17 +102,23 @@ function WebSocket:delete ()
 end
 
 function WebSocket:Start ()
+	WEB_SOCKET_START_CNT = WEB_SOCKET_START_CNT or 1
+	local cnt = WEB_SOCKET_START_CNT
+	WEB_SOCKET_START_CNT = WEB_SOCKET_START_CNT + 1
 	print ('Starting Web Socket... Opening net connection to ' .. self.url)
-
+	WebSocketPrint("OnConnectionStatusChanged(): WebSocket:Start() PRINT 1 CNT ".. cnt)
 	if (self.netBinding and self.protocol and self.port) then
 		self.metrics:SetCounter ('Start')
+		WebSocketPrint("OnConnectionStatusChanged(): WebSocket:Start() PRINT 2 CNT ".. cnt)
 		C4:NetDisconnect (self.netBinding, self.port)
+		WebSocketPrint("OnConnectionStatusChanged(): WebSocket:Start() PRINT 3 CNT ".. cnt)
 		C4:NetConnect (self.netBinding, self.port)
+		WebSocketPrint("OnConnectionStatusChanged(): WebSocket:Start() PRINT 4 CNT ".. cnt)
 	else
 		self.metrics:SetCounter ('Error_Start')
 		print ('C4 network connection not setup')
 	end
-
+	WebSocketPrint("OnConnectionStatusChanged(): WebSocket:Start() PRINT 5 CNT ".. cnt)
 	return self
 end
 
