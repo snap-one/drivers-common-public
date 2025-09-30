@@ -1,6 +1,6 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 32
+AUTH_CODE_GRANT_VER = 33
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -10,9 +10,9 @@ pcall (require, 'drivers-common-public.global.make_short_link')
 
 Metrics = require ('drivers-common-public.module.metrics')
 
-local oauth = {}
+local oauthObject = {}
 
-function oauth:new (tParams, providedRefreshToken)
+function oauthObject:new (tParams, providedRefreshToken)
 	local o = {
 		NAME = tParams.NAME,
 		AUTHORIZATION = tParams.AUTHORIZATION,
@@ -85,7 +85,7 @@ function oauth:new (tParams, providedRefreshToken)
 	return o, willGenerateRefreshEvent
 end
 
-function oauth:MakeState (contextInfo, extraParamsForAuthLink, uriToCompletePage)
+function oauthObject:MakeState (contextInfo, extraParamsForAuthLink, uriToCompletePage)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -116,7 +116,7 @@ function oauth:MakeState (contextInfo, extraParamsForAuthLink, uriToCompletePage
 	self:urlPost (url, data, headers, 'MakeStateResponse', context)
 end
 
-function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, context, url)
+function oauthObject:MakeStateResponse (strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with MakeState', strError)
 		return
@@ -154,7 +154,7 @@ function oauth:MakeStateResponse (strError, responseCode, tHeaders, data, contex
 	end
 end
 
-function oauth:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
+function oauthObject:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -205,7 +205,7 @@ function oauth:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
 	end
 end
 
-function oauth:CheckState (state, contextInfo, nonce)
+function oauthObject:CheckState (state, contextInfo, nonce)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -215,7 +215,7 @@ function oauth:CheckState (state, contextInfo, nonce)
 	self:urlGet (url, nil, 'CheckStateResponse', { state = state, contextInfo = contextInfo, })
 end
 
-function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, context, url)
+function oauthObject:CheckStateResponse (strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with CheckState:', strError)
 		return
@@ -276,7 +276,7 @@ function oauth:CheckStateResponse (strError, responseCode, tHeaders, data, conte
 	end
 end
 
-function oauth:GetUserToken (code, contextInfo)
+function oauthObject:GetUserToken (code, contextInfo)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
 	end
@@ -315,7 +315,7 @@ function oauth:GetUserToken (code, contextInfo)
 	end
 end
 
-function oauth:RefreshToken (contextInfo, newRefreshToken)
+function oauthObject:RefreshToken (contextInfo, newRefreshToken)
 	if (newRefreshToken) then
 		self.REFRESH_TOKEN = newRefreshToken
 	end
@@ -368,7 +368,7 @@ function oauth:RefreshToken (contextInfo, newRefreshToken)
 	self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
 end
 
-function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
+function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
 	if (self.Timer.RefreshingToken) then
 		self.Timer.RefreshingToken = self.Timer.RefreshingToken:Cancel ()
 	end
@@ -447,7 +447,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	end
 end
 
-function oauth:DeleteRefreshToken ()
+function oauthObject:DeleteRefreshToken ()
 	local existed = (self.REFRESH_TOKEN ~= nil)
 
 	local persistStoreKey = C4:Hash ('SHA256', C4:GetDeviceID () .. self.API_CLIENT_ID, SHA_ENC_DEFAULTS)
@@ -462,7 +462,7 @@ function oauth:DeleteRefreshToken ()
 	self:notify ('RefreshTokenDeleted', nil, existed)
 end
 
-function oauth:setLink (link, contextInfo)
+function oauthObject:setLink (link, contextInfo)
 	if (link ~= '') then
 		self.metrics:SetCounter ('LinkCodeReceived')
 	end
@@ -476,7 +476,7 @@ function oauth:setLink (link, contextInfo)
 	end
 end
 
-function oauth:notify (handler, contextInfo, ...)
+function oauthObject:notify (handler, contextInfo, ...)
 	if (self.notifyHandler [handler] and type (self.notifyHandler [handler]) == 'function') then
 		local success, ret = pcall (self.notifyHandler [handler], contextInfo, ...)
 		if (success == false) then
@@ -485,7 +485,7 @@ function oauth:notify (handler, contextInfo, ...)
 	end
 end
 
-function oauth:urlDo (method, url, data, headers, callback, context)
+function oauthObject:urlDo (method, url, data, headers, callback, context)
 	local ticketHandler = function (strError, responseCode, tHeaders, data, context, url)
 		local func = self [callback]
 		local success, ret = pcall (func, self, strError, responseCode, tHeaders, data, context, url)
@@ -494,24 +494,24 @@ function oauth:urlDo (method, url, data, headers, callback, context)
 	urlDo (method, url, data, headers, ticketHandler, context)
 end
 
-function oauth:urlGet (url, headers, callback, context)
+function oauthObject:urlGet (url, headers, callback, context)
 	self:urlDo ('GET', url, nil, headers, callback, context)
 end
 
-function oauth:urlPost (url, data, headers, callback, context)
+function oauthObject:urlPost (url, data, headers, callback, context)
 	self:urlDo ('POST', url, data, headers, callback, context)
 end
 
-function oauth:urlPut (url, data, headers, callback, context)
+function oauthObject:urlPut (url, data, headers, callback, context)
 	self:urlDo ('PUT', url, data, headers, callback, context)
 end
 
-function oauth:urlDelete (url, headers, callback, context)
+function oauthObject:urlDelete (url, headers, callback, context)
 	self:urlDo ('DELETE', url, nil, headers, callback, context)
 end
 
-function oauth:urlCustom (url, method, data, headers, callback, context)
+function oauthObject:urlCustom (url, method, data, headers, callback, context)
 	self:urlDo (method, url, data, headers, callback, context)
 end
 
-return oauth
+return oauthObject

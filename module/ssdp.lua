@@ -1,19 +1,19 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_SSDP_VER = 10
+COMMON_SSDP_VER = 11
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
 require ('drivers-common-public.global.url')
 
-local SSDP = {}
+local ssdpObject = {}
 
-function SSDP:new (searchTarget, options)
+function ssdpObject:new (searchTarget, options)
 	searchTarget = searchTarget or 'upnp:rootdevice'
 
-	if (SSDP.SearchTargets and SSDP.SearchTargets [searchTarget]) then
-		local ssdp = SSDP.SearchTargets [searchTarget]
+	if (self.SearchTargets and self.SearchTargets [searchTarget]) then
+		local ssdp = self.SearchTargets [searchTarget]
 		return ssdp
 	end
 
@@ -34,33 +34,33 @@ function SSDP:new (searchTarget, options)
 	setmetatable (ssdp, self)
 	self.__index = self
 
-	SSDP.SearchTargets = SSDP.SearchTargets or {}
-	SSDP.SearchTargets [searchTarget] = ssdp
+	self.SearchTargets = self.SearchTargets or {}
+	self.SearchTargets [searchTarget] = ssdp
 
 	ssdp:setupC4Connection ()
 
 	return ssdp
 end
 
-function SSDP:delete ()
+function ssdpObject:delete ()
 	self:disconnect ()
 
-	if (SSDP.SearchTargets) then
+	if (self.SearchTargets) then
 		if (self.searchTarget) then
-			SSDP.SearchTargets [self.searchTarget] = nil
+			self.SearchTargets [self.searchTarget] = nil
 		end
 
 		if (self.mcBinding) then
 			OCS [self.mcBinding] = nil
 			RFN [self.mcBinding] = nil
-			SSDP.SearchTargets [self.mcBinding] = nil
+			self.SearchTargets [self.mcBinding] = nil
 			C4:SetBindingAddress (self.mcBinding, '')
 		end
 
 		if (self.bcBinding) then
 			OCS [self.bcBinding] = nil
 			RFN [self.bcBinding] = nil
-			SSDP.SearchTargets [self.bcBinding] = nil
+			self.SearchTargets [self.bcBinding] = nil
 			C4:SetBindingAddress (self.bcBinding, '')
 		end
 	end
@@ -68,7 +68,7 @@ function SSDP:delete ()
 	return nil
 end
 
-function SSDP:StartDiscovery (resetLocations)
+function ssdpObject:StartDiscovery (resetLocations)
 	self:StopDiscovery (resetLocations)
 
 	self:connect ()
@@ -81,7 +81,7 @@ function SSDP:StartDiscovery (resetLocations)
 	self.repeatingDiscoveryTimer = SetTimer (timerId, self.rescanInterval, _timer, true)
 end
 
-function SSDP:StopDiscovery (resetLocations)
+function ssdpObject:StopDiscovery (resetLocations)
 	if (resetLocations) then
 		for location, timer in pairs (self.locations or {}) do
 			self.locations [location] = CancelTimer (timer)
@@ -93,7 +93,7 @@ function SSDP:StopDiscovery (resetLocations)
 	self:disconnect ()
 end
 
-function SSDP:SetProcessXMLFunction (f)
+function ssdpObject:SetProcessXMLFunction (f)
 	local _f = function (s, uuid, data, headers)
 		local success, ret = pcall (f, s, uuid, data, headers)
 	end
@@ -102,7 +102,7 @@ function SSDP:SetProcessXMLFunction (f)
 	return self
 end
 
-function SSDP:SetUpdateDevicesFunction (f)
+function ssdpObject:SetUpdateDevicesFunction (f)
 	local _f = function (s, devices)
 		local success, ret = pcall (f, s, devices)
 	end
@@ -111,7 +111,7 @@ function SSDP:SetUpdateDevicesFunction (f)
 	return self
 end
 
-function SSDP:setupC4Connection ()
+function ssdpObject:setupC4Connection ()
 	local i = 6999
 	if (not self.bcOnly) then
 		while (not self.mcBinding and i > 6900) do
@@ -154,8 +154,8 @@ function SSDP:setupC4Connection ()
 	end
 
 	if (self.bcBinding) then
-		SSDP.SearchTargets = SSDP.SearchTargets or {}
-		SSDP.SearchTargets [self.bcBinding] = self
+		self.SearchTargets = self.SearchTargets or {}
+		self.SearchTargets [self.bcBinding] = self
 
 		RFN [self.bcBinding] = parseResponse
 		OCS [self.bcBinding] = isOnline
@@ -164,8 +164,8 @@ function SSDP:setupC4Connection ()
 	end
 
 	if (self.mcBinding) then
-		SSDP.SearchTargets = SSDP.SearchTargets or {}
-		SSDP.SearchTargets [self.mcBinding] = self
+		self.SearchTargets = self.SearchTargets or {}
+		self.SearchTargets [self.mcBinding] = self
 
 		RFN [self.mcBinding] = parseResponse
 		OCS [self.mcBinding] = isOnline
@@ -176,7 +176,7 @@ function SSDP:setupC4Connection ()
 	return self
 end
 
-function SSDP:connect ()
+function ssdpObject:connect ()
 	self:disconnect ()
 
 	if (self.mcBinding) then
@@ -187,7 +187,7 @@ function SSDP:connect ()
 	end
 end
 
-function SSDP:disconnect ()
+function ssdpObject:disconnect ()
 	if (self.mcBinding) then
 		C4:NetDisconnect (self.mcBinding, 1900)
 	end
@@ -196,7 +196,7 @@ function SSDP:disconnect ()
 	end
 end
 
-function SSDP:sendDiscoveryPacket (binding)
+function ssdpObject:sendDiscoveryPacket (binding)
 	local ip, online
 
 	if (binding == self.mcBinding) then
@@ -225,7 +225,7 @@ function SSDP:sendDiscoveryPacket (binding)
 	end
 end
 
-function SSDP:parseResponse (data)
+function ssdpObject:parseResponse (data)
 	local headers = {}
 	for line in string.gmatch (data, '(.-)\r\n') do
 		local k, v = string.match (line, '%s*(.-)%s*[:/*]%s*(.+)')
@@ -328,7 +328,7 @@ function SSDP:parseResponse (data)
 	end
 end
 
-function SSDP:deviceOffline (uuid)
+function ssdpObject:deviceOffline (uuid)
 	local deviceGoOfflineNow = function (device)
 		local location = device.LOCATION
 		self.locations [location] = CancelTimer (self.locations [location])
@@ -354,7 +354,7 @@ function SSDP:deviceOffline (uuid)
 	self:updateDevices ()
 end
 
-function SSDP:updateDevices ()
+function ssdpObject:updateDevices ()
 	local _timer = function (timer)
 		if (self.UpdateDevices and type (self.UpdateDevices == 'function')) then
 			pcall (self.UpdateDevices, self, CopyTable (self.devices))
@@ -365,7 +365,7 @@ function SSDP:updateDevices ()
 	SetTimer (timerId, ONE_SECOND, _timer)
 end
 
-function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
+function ssdpObject:parseXML (strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		print ('Error retrieving device XML: ' .. (context.usnUUID or 'Unknown USN UUID') .. ' : url: ' .. url)
 		return
@@ -408,4 +408,4 @@ function SSDP:parseXML (strError, responseCode, tHeaders, data, context, url)
 	end
 end
 
-return SSDP
+return ssdpObject

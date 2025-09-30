@@ -1,12 +1,14 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_METRICS_VER = 8
+COMMON_METRICS_VER = 9
 
-local Metrics = {}
+local metricsObject = {}
 
-DEBUG_METRICS = DEBUG_METRICS or false
+do -- define globals
+	DEBUG_METRICS = DEBUG_METRICS or false
+end
 
-function Metrics:new (group, version, identifier)
+function metricsObject:new (group, version, identifier)
 	if (group == nil) then
 		group = tostring (C4:GetDriverConfigInfo ('name'))
 		version = tostring (C4:GetDriverConfigInfo ('version'))
@@ -15,10 +17,10 @@ function Metrics:new (group, version, identifier)
 			version = tostring (version)
 		end
 		if (type (version) ~= 'string') then
-			error ('Metrics:new - version is required when specifying a metric group', 2)
+			error ('metricsObject:new - version is required when specifying a metric group', 2)
 		end
 	else
-		error ('Metrics:new - group must be a string or nil', 2)
+		error ('metricsObject:new - group must be a string or nil', 2)
 		return
 	end
 
@@ -50,8 +52,8 @@ function Metrics:new (group, version, identifier)
 
 	local namespace = table.concat (namespace, '.')
 
-	if (Metrics.NameSpaces and Metrics.NameSpaces [namespace]) then
-		local metric = Metrics.NameSpaces [namespace]
+	if (self.NameSpaces and self.NameSpaces [namespace]) then
+		local metric = self.NameSpaces [namespace]
 		return metric
 	end
 
@@ -62,20 +64,20 @@ function Metrics:new (group, version, identifier)
 	setmetatable (metric, self)
 	self.__index = self
 
-	Metrics.NameSpaces = Metrics.NameSpaces or {}
-	Metrics.NameSpaces [namespace] = metric
+	self.NameSpaces = self.NameSpaces or {}
+	self.NameSpaces [namespace] = metric
 
 	return metric
 end
 
-function Metrics:SetCounter (key, value, sampleRate)
+function metricsObject:SetCounter (key, value, sampleRate)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdCounter) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:SetCounter - key must be a string', 2)
+		error ('metricsObject:SetCounter - key must be a string', 2)
 	end
 
 	if (value == nil) then
@@ -83,95 +85,95 @@ function Metrics:SetCounter (key, value, sampleRate)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetCounter - Cannot set counter ' .. tostring (key) .. ' to non-number value', 2)
+		error ('metricsObject:SetCounter - Cannot set counter ' .. tostring (key) .. ' to non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
 
 	C4:StatsdCounter (self.namespace, key, value, (sampleRate or 0))
 	if (DEBUG_METRICS) then
-		print ('Metrics:SetCounter:', self.namespace, key, tostring (value))
+		print ('metricsObject:SetCounter:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:SetGauge (key, value)
+function metricsObject:SetGauge (key, value)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdGauge) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:SetGauge - Metric key must be a string', 2)
+		error ('metricsObject:SetGauge - Metric key must be a string', 2)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetGauge - Cannot set stats gauge ' .. tostring (key) .. ' to non-number value', 2)
+		error ('metricsObject:SetGauge - Cannot set stats gauge ' .. tostring (key) .. ' to non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
 
 	C4:StatsdGauge (self.namespace, key, value)
 	if (DEBUG_METRICS) then
-		print ('Metrics:SetGauge:', self.namespace, key, tostring (value))
+		print ('metricsObject:SetGauge:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:AdjustGauge (key, value)
+function metricsObject:AdjustGauge (key, value)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdAdjustGauge) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:AdjustGauge - Metric key must be a string', 2)
+		error ('metricsObject:AdjustGauge - Metric key must be a string', 2)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:AdjustGauge - Trying to adjust stats gauge ' .. tostring (key) .. ' by non-number value', 2)
+		error ('metricsObject:AdjustGauge - Trying to adjust stats gauge ' .. tostring (key) .. ' by non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
 
 	C4:StatsdAdjustGauge (self.namespace, key, value)
 	if (DEBUG_METRICS) then
-		print ('Metrics:AdjustGauge:', self.namespace, key, tostring (value))
+		print ('metricsObject:AdjustGauge:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:SetTimer (key, value)
+function metricsObject:SetTimer (key, value)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdTimer) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:SetTimer - Metric key must be a string', 2)
+		error ('metricsObject:SetTimer - Metric key must be a string', 2)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetTimer - Cannot set stats timer ' .. tostring (key) .. ' to non-number value', 2)
+		error ('metricsObject:SetTimer - Cannot set stats timer ' .. tostring (key) .. ' to non-number value', 2)
 	end
 
 	key = self:GetSafeString (key)
 
 	C4:StatsdTimer (self.namespace, key, value)
 	if (DEBUG_METRICS) then
-		print ('Metrics:SetTimer:', self.namespace, key, tostring (value))
+		print ('metricsObject:SetTimer:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:SetString (key, value)
+function metricsObject:SetString (key, value)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdString) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:SetString - Metric key must be a string', 2)
+		error ('metricsObject:SetString - Metric key must be a string', 2)
 	end
 
 	if (type (value) ~= 'string') then
-		error ('Metrics:SetString - Cannot set stats string ' .. tostring (key) .. ' to non-string value', 2)
+		error ('metricsObject:SetString - Cannot set stats string ' .. tostring (key) .. ' to non-string value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -180,22 +182,22 @@ function Metrics:SetString (key, value)
 
 	C4:StatsdString (self.namespace, key, value)
 	if (DEBUG_METRICS) then
-		print ('Metrics:SetString:', self.namespace, key, tostring (value))
+		print ('metricsObject:SetString:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:SetJSON (key, value)
+function metricsObject:SetJSON (key, value)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdJSONObject) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:SetJSON - Metric key must be a string', 2)
+		error ('metricsObject:SetJSON - Metric key must be a string', 2)
 	end
 
 	if (type (value) ~= 'string') then
-		error ('Metrics:SetJSON - Cannot set stats JSONObject ' .. tostring (key) .. ' to non-string value', 2)
+		error ('metricsObject:SetJSON - Cannot set stats JSONObject ' .. tostring (key) .. ' to non-string value', 2)
 	end
 
 	key = self:GetSafeString (key)
@@ -204,22 +206,22 @@ function Metrics:SetJSON (key, value)
 
 	C4:StatsdJSONObject (self.namespace, key, value)
 	if (DEBUG_METRICS) then
-		print ('Metrics:SetJSON:', self.namespace, key, tostring (value))
+		print ('metricsObject:SetJSON:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:SetIncrementingMeter (key, value)
+function metricsObject:SetIncrementingMeter (key, value)
 	---@diagnostic disable-next-line: undefined-field
 	if (not C4.StatsdIncrementMeter) then
 		return
 	end
 
 	if (type (key) ~= 'string') then
-		error ('Metrics:SetIncrementingMeter - Metric key must be a string', 2)
+		error ('metricsObject:SetIncrementingMeter - Metric key must be a string', 2)
 	end
 
 	if (type (value) ~= 'number') then
-		error ('Metrics:SetIncrementingMeter - Cannot set incremeting meter ' .. tostring (key) .. ' to non-number value', 2)
+		error ('metricsObject:SetIncrementingMeter - Cannot set incremeting meter ' .. tostring (key) .. ' to non-number value', 2)
 		return
 	end
 
@@ -227,11 +229,11 @@ function Metrics:SetIncrementingMeter (key, value)
 
 	C4:StatsdIncrementMeter (self.namespace, key, value)
 	if (DEBUG_METRICS) then
-		print ('Metrics:SetIncrementMeter:', self.namespace, key, tostring (value))
+		print ('metricsObject:SetIncrementMeter:', self.namespace, key, tostring (value))
 	end
 end
 
-function Metrics:GetSafeString (s, ignoreUselessStrings)
+function metricsObject:GetSafeString (s, ignoreUselessStrings)
 	if (s == nil) then
 		return
 	end
@@ -241,10 +243,10 @@ function Metrics:GetSafeString (s, ignoreUselessStrings)
 	local safe = string.gsub (s, p, '_')
 
 	if (ignoreUselessStrings ~= true and string.gsub (safe, '_', '') == '') then
-		error ('Metrics:GetSafeString - generated a non-useful string', 3)
+		error ('metricsObject:GetSafeString - generated a non-useful string', 3)
 	end
 
 	return safe
 end
 
-return Metrics
+return metricsObject
