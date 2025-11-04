@@ -1,13 +1,13 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2025 Snap One, LLC. All rights reserved.
 
-AUTH_DEVICE_PIN_VER = 7
+AUTH_DEVICE_PIN_VER = 8
 
 require ('drivers-common-public.global.url')
 require ('drivers-common-public.global.timer')
 
-local oauth = {}
+local oauthObject = {}
 
-function oauth:new (tParams)
+function oauthObject:new (tParams)
 	local o = {
 		AUTH_ENDPOINT_URI = tParams.AUTH_ENDPOINT_URI,
 		TOKEN_ENDPOINT_URI = tParams.TOKEN_ENDPOINT_URI,
@@ -27,7 +27,7 @@ function oauth:new (tParams)
 	return o
 end
 
-function oauth:GetPINCode (contextInfo, extras)
+function oauthObject:GetPINCode (contextInfo, extras)
 	--print ('GetPINCode', contextInfo)
 	if (type (contextInfo) ~= 'table') then
 		contextInfo = {}
@@ -55,7 +55,7 @@ function oauth:GetPINCode (contextInfo, extras)
 	self:urlPost (url, data, headers, 'GetPINCodeResponse', { contextInfo = contextInfo, })
 end
 
-function oauth:GetPINCodeResponse (strError, responseCode, tHeaders, data, context, url)
+function oauthObject:GetPINCodeResponse (strError, responseCode, tHeaders, data, context, url)
 	--print ('GetPINCodeResponse', strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with GetPINCodeResponse:', strError)
@@ -91,7 +91,7 @@ function oauth:GetPINCodeResponse (strError, responseCode, tHeaders, data, conte
 	end
 end
 
-function oauth:CheckPINCode (contextInfo)
+function oauthObject:CheckPINCode (contextInfo)
 	--print ('CheckPINCode', contextInfo)
 
 	if (type (contextInfo) ~= 'table') then
@@ -116,7 +116,7 @@ function oauth:CheckPINCode (contextInfo)
 	self:urlPost (url, data, headers, 'CheckPINCodeResponse', { contextInfo = contextInfo, })
 end
 
-function oauth:CheckPINCodeResponse (strError, responseCode, tHeaders, data, context, url)
+function oauthObject:CheckPINCodeResponse (strError, responseCode, tHeaders, data, context, url)
 	--print ('CheckPINCodeResponse', strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with CheckPINCodeResponse:', strError)
@@ -147,7 +147,7 @@ function oauth:CheckPINCodeResponse (strError, responseCode, tHeaders, data, con
 	end
 end
 
-function oauth:RefreshToken (contextInfo)
+function oauthObject:RefreshToken (contextInfo)
 	--print ('RefreshToken')
 	if (self.REFRESH_TOKEN == nil) then
 		return
@@ -175,7 +175,7 @@ function oauth:RefreshToken (contextInfo)
 	self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
 end
 
-function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
+function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
 	--print ('GetTokenResponse', strError, responseCode, tHeaders, data, context, url)
 	if (strError) then
 		dbg ('Error with GetToken:', strError)
@@ -214,7 +214,7 @@ function oauth:GetTokenResponse (strError, responseCode, tHeaders, data, context
 	end
 end
 
-function oauth:urlDo (method, url, data, headers, callback, context)
+function oauthObject:urlDo (method, url, data, headers, callback, context)
 	local ticketHandler = function (strError, responseCode, tHeaders, data, context, url)
 		local func = self [callback]
 		local success, ret = pcall (func, self, strError, responseCode, tHeaders, data, context, url)
@@ -223,24 +223,24 @@ function oauth:urlDo (method, url, data, headers, callback, context)
 	urlDo (method, url, data, headers, ticketHandler, context)
 end
 
-function oauth:urlGet (url, headers, callback, context)
+function oauthObject:urlGet (url, headers, callback, context)
 	self:urlDo ('GET', url, nil, headers, callback, context)
 end
 
-function oauth:urlPost (url, data, headers, callback, context)
+function oauthObject:urlPost (url, data, headers, callback, context)
 	self:urlDo ('POST', url, data, headers, callback, context)
 end
 
-function oauth:urlPut (url, data, headers, callback, context)
+function oauthObject:urlPut (url, data, headers, callback, context)
 	self:urlDo ('PUT', url, data, headers, callback, context)
 end
 
-function oauth:urlDelete (url, headers, callback, context)
+function oauthObject:urlDelete (url, headers, callback, context)
 	self:urlDo ('DELETE', url, nil, headers, callback, context)
 end
 
-function oauth:urlCustom (url, method, data, headers, callback, context)
+function oauthObject:urlCustom (url, method, data, headers, callback, context)
 	self:urlDo (method, url, data, headers, callback, context)
 end
 
-return oauth
+return oauthObject

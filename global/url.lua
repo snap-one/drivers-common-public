@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 27
+COMMON_URL_VER = 28
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -32,8 +32,6 @@ do -- Globals defined by importing drivers
 	--string or bool
 end
 
-
-
 do --Setup Metrics
 	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
@@ -50,7 +48,10 @@ function MakeURL (path, args, suppressDefaultArgs)
 		end
 	end
 
-	if (APIBase and path and not (string.find ((path or ''), '^http'))) then
+	local alreadyHasHTTP = string.find ((path or ''), '^https?:')
+	local alreadyHasController = string.find ((path or ''), '^controller:')
+
+	if (APIBase and path and not (alreadyHasHTTP or alreadyHasController)) then
 		path = APIBase .. path
 	end
 
