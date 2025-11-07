@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 130
+COMMON_MSP_VER = 131
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -160,7 +160,7 @@ function OnDriverLateInit (driverInitType)
 
 	KillAllTimers ()
 	if (C4.AllowExecute) then
-		local success, ret = pcall (C4.AllowExecute, not (IN_PRODUCTION))
+		local success, ret = pcall (C4.AllowExecute, C4, not (IN_PRODUCTION))
 	end
 
 	C4:urlSetTimeout (10)
