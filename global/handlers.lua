@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 31
+COMMON_HANDLERS_VER = 32
 
 do -- define globals
 	DEBUG_RFN = false
@@ -384,6 +384,12 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus)
 end
 
 function RegisterDeviceEvent (firingDeviceId, eventId, callback)
+	if (type (firingDeviceId) ~= 'number') then
+		firingDeviceId = tonumber (firingDeviceId)
+	end
+	if (type (eventId) ~= 'number') then
+		eventId = tonumber (eventId)
+	end
 	if (firingDeviceId == nil or eventId == nil) then
 		MetricsHandler:SetCounter ('Error_RegisterDeviceEvent')
 		print ('RegisterDeviceEvent error (Invalid idDevice / idVariable): ', tostring (firingDeviceId),
@@ -405,6 +411,12 @@ function RegisterDeviceEvent (firingDeviceId, eventId, callback)
 end
 
 function UnregisterDeviceEvent (firingDeviceId, eventId)
+	if (type (firingDeviceId) ~= 'number') then
+		firingDeviceId = tonumber (firingDeviceId)
+	end
+	if (type (eventId) ~= 'number') then
+		eventId = tonumber (eventId)
+	end
 	if (firingDeviceId == nil or eventId == nil) then
 		MetricsHandler:SetCounter ('Error_UnregisterDeviceEvent')
 		print ('UnregisterDeviceEvent error (Invalid idDevice / idVariable): ', tostring (firingDeviceId),
@@ -424,6 +436,8 @@ function UnregisterDeviceEvent (firingDeviceId, eventId)
 end
 
 function OnDeviceEvent (firingDeviceId, eventId)
+	Print (firingDeviceId)
+	Print (eventId)
 	local suppressDebug = Select (ODE, 'suppressDebug', firingDeviceId, eventId)
 
 	if (not suppressDebug) then
