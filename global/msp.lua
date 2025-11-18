@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 131
+COMMON_MSP_VER = 132
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -252,8 +252,11 @@ function OnDriverLateInit (driverInitType)
 		SetTimer ('RefreshNavs', math.random (30, 60) * ONE_SECOND)
 	end
 
-	if (driverInitType == 'DIT_UPDATING') then
+	if (driverInitType == 'DIT_ADDING') then
+	elseif (driverInitType == 'DIT_UPDATING') then
 		SetTimer ('RefreshNavs', math.random (30, 60) * ONE_SECOND)
+	elseif (driverInitType == 'DIT_STARTUP') then
+	elseif (driverInitType == 'DIT_LOADED') then
 	end
 
 	if (type (OnDriverLateInitTasks) == 'function') then
