@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 132
+COMMON_MSP_VER = 133
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -24,7 +24,8 @@ do --Globals
 
 	MAX_SEARCH = 20
 
-	QUEUE_WINDOW_HALF = 100
+	QUEUE_DISPLAY_SIZE = 200
+	DEFAULT_QUEUE_DISPLAY_SIZE = 200
 
 	MAX_SKIPS = 5
 	SKIP_TIMEOUT = ONE_HOUR
@@ -306,6 +307,17 @@ end
 
 function OPC.Tag_Explicit_Tracks (value)
 	TAG_EXPLICIT_TRACKS = (value == 'On')
+end
+
+function OPC.Queue_Display_Size (value)
+	QUEUE_DISPLAY_SIZE = tonumber (value)
+	if (not QUEUE_DISPLAY_SIZE) then
+		QUEUE_DISPLAY_SIZE = DEFAULT_QUEUE_DISPLAY_SIZE
+	end
+	QUEUE_DISPLAY_SIZE = math.floor (QUEUE_DISPLAY_SIZE)
+	if (QUEUE_DISPLAY_SIZE < 1) then
+		QUEUE_DISPLAY_SIZE = 1
+	end
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field
@@ -1682,24 +1694,41 @@ function UpdateQueue (qId, options)
 
 		local start, finish
 
-		local surround = QUEUE_WINDOW_HALF
-
-		start = index - surround
-		if (start < 1) then
-			surround = surround + (1 - start)
+		if (#thisQ.Q <= QUEUE_DISPLAY_SIZE) then
 			start = 1
+			finish = QUEUE_DISPLAY_SIZE
+		else
+			local half = math.floor (QUEUE_DISPLAY_SIZE / 2)
+
+			if (index <= half) then
+				start = 1
+				finish = QUEUE_DISPLAY_SIZE
+			elseif (index + half >= #thisQ.Q) then
+				start = #thisQ.Q - QUEUE_DISPLAY_SIZE + 1
+				finish = #thisQ.Q
+			elseif (QUEUE_DISPLAY_SIZE % 2 == 0) then
+				start = index - half + 1
+				finish = index + half
+			elseif (QUEUE_DISPLAY_SIZE % 2 == 1) then
+				start = index - half
+				finish = index + half
+			end
 		end
 
-		finish = index + surround
+		if (start < 1) then
+			start = 1
+		end
 		if (finish > #thisQ.Q) then
-			start = start - (finish - #thisQ.Q)
-			if (start < 1) then
-				start = 1
-			end
 			finish = #thisQ.Q
 		end
 
 		index = index - start + 1 + (thisQ.SKIP_INCREMENT or 0)
+
+		if (index < start) then
+			index = start
+		elseif (index > finish) then
+			index = finish
+		end
 
 		local list = {}
 		for i = start, finish do
