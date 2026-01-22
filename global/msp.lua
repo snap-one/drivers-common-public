@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 133
+COMMON_MSP_VER = 134
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1723,12 +1723,6 @@ function UpdateQueue (qId, options)
 		end
 
 		index = index - start + 1 + (thisQ.SKIP_INCREMENT or 0)
-
-		if (index < start) then
-			index = start
-		elseif (index > finish) then
-			index = finish
-		end
 
 		local list = {}
 		for i = start, finish do
