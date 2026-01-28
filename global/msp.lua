@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 134
+COMMON_MSP_VER = 135
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -63,6 +63,15 @@ do --Globals
 
 	DEBUG_DATA_RECEIVED = false
 	DEBUG_SEND_EVENT = false
+
+	RYFF_STANDALONE_SYSTEMTYPES = {
+		['XDT_SA1'] = 'control4_sa1',
+		['XDT_ESSTRMSNDBR3CH'] = 'control4_esstrmsndbr3ch',
+		['XDT_ESSTRMIRSPKR5'] = 'control4_esstrmspkr5',
+		['XDT_EASTREAMAMP1'] = 'control4_eastrmamp1',
+		['XDT_EASTREAMPRE1'] = 'control4_eastrmpre1',
+		['XDT_EASTREAMPRE4'] = 'control4_eastrmpre4',
+	}
 end
 
 do -- Globals defined by importing drivers
@@ -230,11 +239,8 @@ function OnDriverLateInit (driverInitType)
 	SUPPORTS_FAVORITE_TO_ROOM = VersionCheck ('3.0.0')
 	SUPPORTS_FAVORITE_TO_HOME = VersionCheck ('4.0.0')
 
-	IS_RYFF_STANDALONE = false
 	local systemType = C4:GetSystemType ()
-	if (systemType == 'XDT_SA1') then
-		IS_RYFF_STANDALONE = true
-	end
+	IS_RYFF_STANDALONE = (RYFF_STANDALONE_SYSTEMTYPES [systemType] ~= nil)
 
 	if (IS_RYFF_STANDALONE) then
 		SUPPORTS_FAVORITE_TO_ROOM = false
@@ -638,7 +644,17 @@ function DataReceived (idBinding, navId, seq, args)
 	}
 
 	if (DEBUG_DATA_RECEIVED) then
-		print ('DATA_RECEIVED')
+		local t, ms
+		if (C4.GetTime) then
+			t = C4:GetTime ()
+			ms = '.' .. tostring (t % 1000)
+			t = math.floor (t / 1000)
+		else
+			t = os.time ()
+			ms = ''
+		end
+		local s = string.format ("%-21s : ", os.date ('%x %X') .. ms .. ': DATA_RECEIVED')
+		print (s)
 		Print (tParams)
 	end
 
@@ -668,7 +684,17 @@ function SendEvent (idBinding, navId, roomId, name, args)
 	}
 
 	if (DEBUG_SEND_EVENT) then
-		print ('SEND_EVENT')
+		local t, ms
+		if (C4.GetTime) then
+			t = C4:GetTime ()
+			ms = '.' .. tostring (t % 1000)
+			t = math.floor (t / 1000)
+		else
+			t = os.time ()
+			ms = ''
+		end
+		local s = string.format ("%-21s : ", os.date ('%x %X') .. ms .. ': SEND_EVENT')
+		print (s)
 		Print (tParams)
 	end
 
@@ -751,6 +777,11 @@ function ParseRoomIds (roomIdsToParse, firstRoomId)
 end
 
 function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, radioSkips, containerInfo)
+	local trackCount = 0
+	if (type (trackList) == 'table') then
+		trackCount = #trackList
+	end
+	dbg ('Tracks Added To Queue: ' .. tostring (trackCount))
 	local roomIds, firstRoomId = ParseRoomIds (roomIdsToParse)
 
 	if (#roomIds == 0) then
@@ -1003,6 +1034,7 @@ function PlayTrackURL (url, roomIdsToParse, idInQ, flags, nextURL, position, har
 		command = 'SELECT_INTERNET_RADIO'
 		params.REPORT_ERRORS = true
 	end
+	dbg ('Digital Audio: ' .. command)
 	C4:SendToProxy (MSP_PROXY, command, params, 'COMMAND')
 end
 
