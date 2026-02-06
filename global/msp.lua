@@ -1,6 +1,6 @@
 -- Copyright 2025 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 135
+COMMON_MSP_VER = 136
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -173,7 +173,8 @@ function OnDriverLateInit (driverInitType)
 		local success, ret = pcall (C4.AllowExecute, C4, not (IN_PRODUCTION))
 	end
 
-	C4:urlSetTimeout (10)
+	C4:urlSetTimeout (15)
+	C4:urlSetOption ('max_host_connections', 5)
 
 	for _, var in ipairs (UserVariables or {}) do
 		local init
