@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 56
+COMMON_LIB_VER = 57
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1461,4 +1461,40 @@ function MakeAscii (taggedString)
 	end
 	local asciiString = string.gsub (taggedString, '([%z\1-\127\194-\244][\128-\191]*)', subFun)
 	return asciiString
+end
+
+function IsDayTime ()
+	local currentHour = os.date ('*t').hour
+	local currentMinute = os.date ('*t').min
+
+	local currentDay = os.date ('*t').day
+	local currentMonth = os.date ('*t').month
+	local currentYear = os.date ('*t').year
+
+	local params = {
+		day = currentDay,
+		month = currentMonth,
+		year = currentYear,
+	}
+
+	local schedulerAgent = next (C4:GetDevicesByC4iName ('control4_agent_scheduler.c4i')) -- 100100
+	if (schedulerAgent) then
+		local sunInfo = C4:SendUIRequest (schedulerAgent, 'GET_SUNRISE_SUNSET', params)
+		if (sunInfo) then
+			local sunsetInfo = XMLCapture (sunInfo, 'sunset')
+			local sunriseInfo = XMLCapture (sunInfo, 'sunrise')
+			local sunriseHour = tonumber (XMLCapture (sunriseInfo, 'hour'))
+			local sunriseMinute = tonumber (XMLCapture (sunriseInfo, 'minute'))
+			local sunsetHour = tonumber (XMLCapture (sunsetInfo, 'hour'))
+			local sunsetMinute = tonumber (XMLCapture (sunsetInfo, 'minute'))
+
+			if (currentHour < sunriseHour or (currentHour == sunriseHour and currentMinute < sunriseMinute)) then
+				return false
+			elseif (currentHour > sunsetHour or (currentHour == sunsetHour and currentMinute >= sunsetMinute)) then
+				return false
+			else
+				return true
+			end
+		end
+	end
 end
