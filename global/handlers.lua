@@ -1,9 +1,9 @@
--- Copyright 2024 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 32
+COMMON_HANDLERS_VER = 33
 
 do -- define globals
 	DEBUG_RFN = false
@@ -889,7 +889,14 @@ function UIRequest (strCommand, tParams)
 	end
 
 	if (success == true) then
-		return (ret)
+		-- The return value from UIRequest has to be valid XML for it not to trigger
+		-- a potential automatic fallthrough to ExecuteCommand
+		if (type (ret) == 'string') then
+			-- let's hope this this is XML!
+			return ret
+		else
+			return XMLTag ('result', 'success')
+		end
 	elseif (success == false) then
 		print ('UIRequest Lua error: ', strCommand, ret)
 	elseif (DEBUGPRINT) then
