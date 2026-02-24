@@ -40,10 +40,9 @@ function CancelTimer (timerId)
 		end
 
 		if (timer.Cancel) then
-			Timer [timerId] = timer:Cancel ()
-		else
-			Timer [timerId] = nil
+			timer:Cancel ()
 		end
+		Timer [timerId] = nil
 		TimerFunctions [timer] = nil
 	end
 	return nil
