@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_TIMER_VER = 12
+COMMON_TIMER_VER = 13
 
 do --Globals
 	Timer = Timer or {}
@@ -41,6 +41,11 @@ function CancelTimer (timerId)
 
 		if (timer.Cancel) then
 			Timer [timerId] = timer:Cancel ()
+			for k, v in pairs (Timer) do
+				if (v == timer) then
+					Timer [k] = nil
+				end
+			end
 		else
 			Timer [timerId] = nil
 		end
