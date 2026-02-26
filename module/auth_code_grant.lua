@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 33
+AUTH_CODE_GRANT_VER = 34
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -39,12 +39,13 @@ function oauthObject:new (tParams, providedRefreshToken)
 		DEFAULT_EXPIRES_IN = tParams.DEFAULT_EXPIRES_IN or 3600, -- one hour
 
 		notifyHandler = {},
-		Timer = {},
 	}
 
 	if (tParams.USE_BASIC_AUTH_HEADER) then
-		o.BasicAuthHeader = 'Basic ' .. C4:Base64Encode (tParams.API_CLIENT_ID .. ':' .. tParams.API_SECRET)
+		o.BasicAuthHeader = 'Basic ' .. C4:Base64Encode (o.API_CLIENT_ID .. ':' .. o.API_SECRET)
 	end
+
+	o.timerPrefix = 'OAuth_' .. (o.NAME or o.API_CLIENT_ID or GetRandomString (10)) .. '_Timer_'
 
 	setmetatable (o, self)
 	self.__index = self
@@ -75,7 +76,7 @@ function oauthObject:new (tParams, providedRefreshToken)
 		local _timer = function (timer)
 			o:RefreshToken (nil, initialRefreshToken)
 		end
-		SetTimer (nil, ONE_SECOND, _timer)
+		SetTimer (o.timerPrefix .. 'InitWithToken', ONE_SECOND, _timer)
 	else
 		o.metrics:SetCounter ('InitWithoutToken')
 	end
@@ -135,7 +136,7 @@ function oauthObject:MakeStateResponse (strError, responseCode, tHeaders, data, 
 		local timeRemaining = expiresAt - os.time ()
 
 		local _timedOut = function (timer)
-			CancelTimer (self.Timer.CheckState)
+			CancelTimer (self.timerPrefix .. 'CheckState')
 
 			self:setLink ('')
 
@@ -143,12 +144,12 @@ function oauthObject:MakeStateResponse (strError, responseCode, tHeaders, data, 
 			self:notify ('ActivationTimeOut', contextInfo)
 		end
 
-		self.Timer.GetCodeStatusExpired = SetTimer (self.Timer.GetCodeStatusExpired, timeRemaining * ONE_SECOND, _timedOut)
+		SetTimer (self.timerPrefix .. 'GetCodeStatusExpired', timeRemaining * ONE_SECOND, _timedOut)
 
 		local _timer = function (timer)
 			self:CheckState (state, contextInfo, nonce)
 		end
-		self.Timer.CheckState = SetTimer (self.Timer.CheckState, 5 * ONE_SECOND, _timer, true)
+		SetTimer (self.timerPrefix .. 'CheckState', 5 * ONE_SECOND, _timer, true)
 
 		self:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
 	end
@@ -226,8 +227,8 @@ function oauthObject:CheckStateResponse (strError, responseCode, tHeaders, data,
 	if (responseCode == 200 and data.code) then
 		-- state exists and has been authorized
 
-		CancelTimer (self.Timer.CheckState)
-		CancelTimer (self.Timer.GetCodeStatusExpired)
+		CancelTimer (self.timerPrefix .. 'CheckState')
+		CancelTimer (self.timerPrefix .. 'GetCodeStatusExpired')
 
 		self.metrics:SetCounter ('LinkCodeConfirmed')
 		self:notify ('LinkCodeConfirmed', contextInfo, data.code)
@@ -240,8 +241,8 @@ function oauthObject:CheckStateResponse (strError, responseCode, tHeaders, data,
 	elseif (responseCode == 401) then
 		-- nonce value incorrect or missing for this state
 
-		CancelTimer (self.Timer.CheckState)
-		CancelTimer (self.Timer.GetCodeStatusExpired)
+		CancelTimer (self.timerPrefix .. 'CheckState')
+		CancelTimer (self.timerPrefix .. 'GetCodeStatusExpired')
 
 		self:setLink ('')
 
@@ -250,8 +251,8 @@ function oauthObject:CheckStateResponse (strError, responseCode, tHeaders, data,
 	elseif (responseCode == 403) then
 		-- state exists and has been denied authorization by the service
 
-		CancelTimer (self.Timer.CheckState)
-		CancelTimer (self.Timer.GetCodeStatusExpired)
+		CancelTimer (self.timerPrefix .. 'CheckState')
+		CancelTimer (self.timerPrefix .. 'GetCodeStatusExpired')
 
 		self:setLink ('')
 
@@ -266,8 +267,8 @@ function oauthObject:CheckStateResponse (strError, responseCode, tHeaders, data,
 	elseif (responseCode == 404) then
 		-- state doesn't exist
 
-		CancelTimer (self.Timer.CheckState)
-		CancelTimer (self.Timer.GetCodeStatusExpired)
+		CancelTimer (self.timerPrefix .. 'CheckState')
+		CancelTimer (self.timerPrefix .. 'GetCodeStatusExpired')
 
 		self:setLink ('')
 
@@ -325,7 +326,7 @@ function oauthObject:RefreshToken (contextInfo, newRefreshToken)
 		return false
 	end
 
-	if (self.Timer.RefreshingToken) then
+	if (self.RefreshingToken) then
 		self.metrics:SetCounter ('CollisionAvoided')
 		return
 	end
@@ -360,25 +361,25 @@ function oauthObject:RefreshToken (contextInfo, newRefreshToken)
 
 	local _timer = function (timer)
 		self.metrics:SetCounter ('CollisionAvoidanceTimerExpired')
-		self.Timer.RefreshingToken = self.Timer.RefreshingToken:Cancel ()
+		self.RefreshingToken = false
 		self:RefreshToken ()
 	end
-	self.Timer.RefreshingToken = SetTimer (self.Timer.RefreshingToken, 30 * ONE_SECOND, _timer)
+	SetTimer (self.timerPrefix .. 'RefreshCollisionAvoidance', 30 * ONE_SECOND, _timer)
+	self.RefreshingToken = true
 
 	self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
 end
 
 function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
-	if (self.Timer.RefreshingToken) then
-		self.Timer.RefreshingToken = self.Timer.RefreshingToken:Cancel ()
-	end
+	CancelTimer (self.timerPrefix .. 'RefreshCollisionAvoidance')
+	self.RefreshingToken = true
 
 	if (strError) then
 		dbg ('Error with GetToken:', strError)
 		local _timer = function (timer)
 			self:RefreshToken ()
 		end
-		self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, 30 * ONE_SECOND, _timer)
+		SetTimer (self.timerPrefix .. 'RefreshToken', 30 * ONE_SECOND, _timer)
 		return
 	end
 
@@ -415,7 +416,7 @@ function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, c
 			-- smear out refreshing the token to avoid all tokens across entire system being refreshed at the same time
 			local delay = self.EXPIRES_IN * math.random (750, 950)
 
-			self.Timer.RefreshToken = SetTimer (self.Timer.RefreshToken, delay, _timer)
+			SetTimer (self.timerPrefix .. 'RefreshToken', delay, _timer)
 		end
 
 		print ((self.NAME or 'OAuth') .. ': Access Token received, accessToken:' .. tostring (self.ACCESS_TOKEN ~= nil) .. ', refreshToken:' .. tostring (self.REFRESH_TOKEN ~= nil))
@@ -455,7 +456,7 @@ function oauthObject:DeleteRefreshToken ()
 	self.ACCESS_TOKEN = nil
 	self.REFRESH_TOKEN = nil
 
-	self.Timer.RefreshToken = CancelTimer (self.Timer.RefreshToken)
+	CancelTimer (self.timerPrefix .. 'RefreshToken')
 
 	self.metrics:SetCounter ('RefreshTokenDeleted')
 

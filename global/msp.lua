@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 136
+COMMON_MSP_VER = 137
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -454,7 +454,7 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 			local _timer = function (timer)
 				Navigators [navId] = nil
 			end
-			nav.DestroyNavTimer = SetTimer (nav.DestroyNavTimer, 5 * ONE_SECOND, _timer)
+			SetTimer ('MSP_DestroyNav' .. navId, 5 * ONE_SECOND, _timer)
 		end
 		return
 	elseif (strCommand == 'INTERNET_RADIO_SELECTED' or strCommand == 'AUDIO_URL_SELECTED') then
@@ -583,7 +583,10 @@ RFP [MSP_PROXY] = function (idBinding, strCommand, tParams, args)
 	end
 
 	if (nav) then
-		nav.DestroyNavTimer = SetTimer (nav.DestroyNavTimer, 3 * ONE_HOUR, function (timer) Navigators [navId] = nil end)
+		local _timer = function (timer)
+			Navigators [navId] = nil
+		end
+		SetTimer ('MSP_DestroyNav' .. navId, 3 * ONE_HOUR, _timer)
 
 		local cmd = nav [strCommand]
 
@@ -905,10 +908,9 @@ function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, rad
 
 		local _timer = function (timer)
 			MetricsMSP:SetCounter ('QueueTimedOut')
-			CancelTimer (SongQs [firstRoomId].TimeOutTimer)
 			SongQs [firstRoomId] = nil
 		end
-		SongQs [firstRoomId].TimeOutTimer = SetTimer (SongQs [firstRoomId].TimeOutTimer, 30 * ONE_SECOND, _timer)
+		SetTimer ('MSP_QueueTimeout_' .. firstRoomId, 30 * ONE_SECOND, _timer)
 
 		if (playOption == 'SHUFFLE') then
 			SongQs [firstRoomId].CurrentTrack = math.random (#trackList)
@@ -991,7 +993,7 @@ function PlayTrackURL (url, roomIdsToParse, idInQ, flags, nextURL, position, har
 		thisQ.nextUrlRequested = false
 		thisQ.nextProgrammedTrackRequested = false
 		thisQ.CurrentTrackElapsed = (position and math.floor (position / ONE_SECOND)) or 0
-		thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
+		CancelTimer ('MSP_QueueProgress_' .. tostring (qId))
 
 		if (idInQ ~= nil) then
 			for i, track in ipairs (thisQ.Q) do
@@ -1290,21 +1292,19 @@ function Skip (roomId, increment)
 		end
 
 		local _timer = function (timer)
-			thisQ.SKIP_INCREMENT = thisQ.SKIP_INCREMENT or 0
+			local skipIncrement = thisQ.SKIP_INCREMENT or 0
+			thisQ.SKIP_INCREMENT = nil
 
-			local nextTrack = thisQ.Q [thisQ.CurrentTrack + thisQ.SKIP_INCREMENT]
+			local nextTrack = thisQ.Q [thisQ.CurrentTrack + skipIncrement]
 
 			local strCommand
-			if (thisQ.SKIP_INCREMENT > 0) then
+			if (skipIncrement > 0) then
 				strCommand = 'SKIP_FWD'
-			elseif (thisQ.SKIP_INCREMENT < 0) then
+			elseif (skipIncrement < 0) then
 				strCommand = 'SKIP_REV'
 			else
 				strCommand = 'REPLAY'
 			end
-
-			thisQ.SKIP_INCREMENT = nil
-			thisQ.SKIP_INCREMENT_TIMER = CancelTimer (thisQ.SKIP_INCREMENT_TIMER)
 
 			LogPlayEvent ('user', qId, strCommand, nextTrack)
 
@@ -1313,7 +1313,7 @@ function Skip (roomId, increment)
 			end
 		end
 
-		thisQ.SKIP_INCREMENT_TIMER = SetTimer (thisQ.SKIP_INCREMENT_TIMER, 500, _timer)
+		SetTimer ('MSP_SkipIncrement_' .. tostring (qId), 500, _timer)
 		UpdateQueue (qId, { suppressList = true, })
 	end
 end
@@ -1968,7 +1968,7 @@ function OnQueueNeedNext (idBinding, tParams)
 			thisQ.nextUrlRequested = false
 			thisQ.nextProgrammedTrackRequested = false
 			thisQ.CurrentTrackElapsed = 0
-			thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
+			CancelTimer ('MSP_QueueProgress_' .. tostring (qId))
 
 			if (nextTrack.idInQ ~= nil) then
 				for i, track in ipairs (thisQ.Q) do
@@ -2006,7 +2006,7 @@ function OnQueueStateChanged (idBinding, tParams)
 		for _, roomId in ipairs (GetRoomMapByQueueID (qId)) do
 			if (SongQs [roomId]) then
 				SongQs [qId] = SongQs [roomId]
-				SongQs [roomId].TimeOutTimer = CancelTimer (SongQs [roomId].TimeOutTimer)
+				CancelTimer ('MSP_QueueTimeout_' .. roomId)
 				SongQs [roomId] = nil
 				thisQ = SongQs [qId]
 				thisQ.Q._parent = thisQ
@@ -2026,7 +2026,7 @@ function OnQueueStateChanged (idBinding, tParams)
 		local thisTrack = thisQ.Q [thisQ.CurrentTrack] or {}
 		thisQ.CurrentTrackDuration = GetTimeNumber (thisTrack.duration)
 
-		thisQ.ProgressTimer = CancelTimer (thisQ.ProgressTimer)
+		CancelTimer ('MSP_QueueProgress_' .. tostring (qId))
 
 		if (thisQ.CurrentState == 'PLAY') then
 			LogPlayEvent ('queue', qId, 'PLAY')
@@ -2062,7 +2062,7 @@ function OnQueueStateChanged (idBinding, tParams)
 				end
 			end
 
-			thisQ.ProgressTimer = SetTimer (thisQ.ProgressTimer, ONE_SECOND, _timer, true)
+			SetTimer ('MSP_QueueProgress_' .. tostring (qId), ONE_SECOND, _timer, true)
 		elseif (thisQ.CurrentState == 'PAUSE') then
 			LogPlayEvent ('queue', qId, 'PAUSE')
 		elseif (thisQ.CurrentState == 'STOP') then
@@ -2571,12 +2571,8 @@ function Navigator:CancelAuthenticationInformation (idBinding, seq, args)
 	end
 
 	if (APIAuth) then
-		if (APIAuth.Timer.CheckState) then
-			APIAuth.Timer.CheckState = CancelTimer (APIAuth.Timer.CheckState)
-		end
-		if (APIAuth.Timer.GetCodeStatusExpired) then
-			APIAuth.Timer.GetCodeStatusExpired = CancelTimer (APIAuth.Timer.GetCodeStatusExpired)
-		end
+		CancelTimer (APIAuth.timerPrefix .. 'CheckState')
+		CancelTimer (APIAuth.timerPrefix .. 'GetCodeStatusExpired')
 
 		APIAuth:setLink ('')
 	end

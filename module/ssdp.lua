@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_SSDP_VER = 11
+COMMON_SSDP_VER = 12
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -30,6 +30,8 @@ function ssdpObject:new (searchTarget, options)
 		friendlyNameTag = options.friendlyNameTag or 'friendlyName',
 		rescanInterval = options.rescanInterval or (5 * ONE_MINUTE),
 	}
+
+	ssdp.timerPrefix = 'SSDP_' .. searchTarget .. '_Timer_'
 
 	setmetatable (ssdp, self)
 	self.__index = self
@@ -77,18 +79,17 @@ function ssdpObject:StartDiscovery (resetLocations)
 		self:connect ()
 	end
 
-	local timerId = 'SSDP:' .. self.searchTarget
-	self.repeatingDiscoveryTimer = SetTimer (timerId, self.rescanInterval, _timer, true)
+	SetTimer (self.timerPrefix .. 'RepeatingDiscovery', self.rescanInterval, _timer, true)
 end
 
 function ssdpObject:StopDiscovery (resetLocations)
 	if (resetLocations) then
-		for location, timer in pairs (self.locations or {}) do
-			self.locations [location] = CancelTimer (timer)
+		for location, _ in pairs (self.locations or {}) do
+			self.locations [location] = CancelTimer (self.timerPrefix .. 'Location_' .. location)
 		end
 	end
 
-	self.repeatingDiscoveryTimer = CancelTimer (self.repeatingDiscoveryTimer)
+	CancelTimer (self.timerPrefix .. 'RepeatingDiscovery')
 
 	self:disconnect ()
 end
@@ -279,11 +280,11 @@ function ssdpObject:parseResponse (data)
 			local usnUUID = string.match (headers.USN, 'uuid:(.*)')
 
 			if (usnUUID and usnUUID == self.CurrentDeviceUUID) then
-				self.rediscoverCurrentDeviceTimer = CancelTimer (self.rediscoverCurrentDeviceTimer)
+				CancelTimer (self.timerPrefix .. 'RediscoverCurrentDevice')
 			end
 
 			if (self.devices [usnUUID] and self.devices [usnUUID].udnUUID == self.CurrentDeviceUUID) then
-				self.rediscoverCurrentDeviceTimer = CancelTimer (self.rediscoverCurrentDeviceTimer)
+				CancelTimer (self.timerPrefix .. 'RediscoverCurrentDevice')
 			end
 
 			if (usnUUID) then
@@ -307,15 +308,14 @@ function ssdpObject:parseResponse (data)
 				end
 
 				local _timer = function (timer)
-					self.locations [location] = CancelTimer (self.locations [location])
+					self.locations [location] = CancelTimer (self.timerPrefix .. 'Location_' .. location)
 					for uuid, device in pairs (self.devices or {}) do
 						if (device.LOCATION == location) then
 							self:deviceOffline (uuid)
 						end
 					end
 				end
-				local timerId = 'SSDP:' .. self.searchTarget .. ':' .. location
-				self.locations [location] = SetTimer (timerId, interval * ONE_SECOND * 1.005, _timer)
+				self.locations [location] = SetTimer (self.timerPrefix .. 'Location_' .. location, interval * ONE_SECOND * 1.005, _timer)
 
 				self:updateDevices ()
 			end
@@ -331,7 +331,7 @@ end
 function ssdpObject:deviceOffline (uuid)
 	local deviceGoOfflineNow = function (device)
 		local location = device.LOCATION
-		self.locations [location] = CancelTimer (self.locations [location])
+		self.locations [location] = CancelTimer (self.timerPrefix .. 'Location_' .. location)
 
 		self.devices [device.usnUUID] = nil
 		self.devices [device.udnUUID] = nil
@@ -341,7 +341,7 @@ function ssdpObject:deviceOffline (uuid)
 				self:connect ()
 			end
 
-			self.rediscoverCurrentDeviceTimer = SetTimer (self.rediscoverCurrentDeviceTimer, 10 * ONE_SECOND, _timer, true)
+			SetTimer (self.timerPrefix .. 'RediscoverCurrentDevice', 10 * ONE_SECOND, _timer, true)
 		end
 	end
 

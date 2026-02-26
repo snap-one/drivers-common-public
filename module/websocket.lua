@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 14
+COMMON_WEBSOCKET_VER = 15
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -68,6 +68,8 @@ function wsObject:new (url, additionalHeaders, wssOptions)
 			additionalHeaders = additionalHeaders or {},
 			wssOptions = wssOptions,
 		}
+
+		ws.timerPrefix = 'WS_' .. url .. '_Timer_'
 
 		setmetatable (ws, self)
 		self.__index = self
@@ -140,11 +142,10 @@ function wsObject:Close ()
 		end
 	end
 
-	self.PingTimer = CancelTimer (self.PingTimer)
-	self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
+	CancelTimer (self.timerPrefix .. 'Ping')
+	CancelTimer (self.timerPrefix .. 'PongResponse')
 
-	local timerId = 'Websocket:' .. self.url .. ':Closing'
-	SetTimer (timerId, 3 * ONE_SECOND, _timer)
+	SetTimer (self.timerPrefix .. 'Closing', 3 * ONE_SECOND, _timer)
 
 	return self
 end
@@ -406,7 +407,7 @@ function wsObject:parseWSPacket ()
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PONG')
 			end
-			self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
+			CancelTimer (self.timerPrefix .. 'PongResponse')
 		elseif (opcode == 0x00) then -- continuation frame
 			if (not self.fragment) then
 				self.metrics:SetCounter ('Error_FramesOutOfOrder')
@@ -490,8 +491,7 @@ function wsObject:Ping ()
 			print ('WS ' .. self.url .. ' appears disconnected - timed out waiting for PONG')
 			self:Close ()
 		end
-		local timerId = 'Websocket:' .. self.url .. ':PongResponse'
-		self.PongResponseTimer = SetTimer (timerId, self.pong_response_interval * ONE_SECOND, _timer)
+		SetTimer (self.timerPrefix .. 'PongResponse', self.pong_response_interval * ONE_SECOND, _timer)
 
 		self:sendToNetwork (pkt)
 	end
@@ -510,8 +510,8 @@ end
 function wsObject:ConnectionChanged (strStatus)
 	self.connected = (strStatus == 'ONLINE')
 
-	self.PingTimer = CancelTimer (self.PingTimer)
-	self.PongResponseTimer = CancelTimer (self.PongResponseTimer)
+	CancelTimer (self.timerPrefix .. 'Ping')
+	CancelTimer (self.timerPrefix .. 'PongResponse')
 
 	if (self.connected) then
 		local pkt = self:MakeHeaders ()
@@ -520,8 +520,7 @@ function wsObject:ConnectionChanged (strStatus)
 		local _timer = function (timer)
 			self:Ping ()
 		end
-		local timerId = 'Websocket:' .. self.url .. ':Ping'
-		self.PingTimer = SetTimer (timerId, self.ping_interval * ONE_SECOND, _timer, true)
+		SetTimer (self.timerPrefix .. 'Ping', self.ping_interval * ONE_SECOND, _timer, true)
 		self.metrics:SetCounter ('Connected')
 		print ('WS ' .. self.url .. ' connected')
 	else
