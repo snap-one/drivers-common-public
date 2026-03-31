@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 34
+AUTH_CODE_GRANT_VER = 35
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -312,7 +312,12 @@ function oauthObject:GetUserToken (code, contextInfo)
 			end
 		end
 
-		self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
+		local context = {
+			contextInfo = contextInfo,
+			reason = 'authorization_code',
+		}
+
+		self:urlPost (url, data, headers, 'GetTokenResponse', context)
 	end
 end
 
@@ -367,7 +372,12 @@ function oauthObject:RefreshToken (contextInfo, newRefreshToken)
 	SetTimer (self.timerPrefix .. 'RefreshCollisionAvoidance', 30 * ONE_SECOND, _timer)
 	self.RefreshingToken = true
 
-	self:urlPost (url, data, headers, 'GetTokenResponse', { contextInfo = contextInfo, })
+	local context = {
+		contextInfo = contextInfo,
+		reason = 'refresh_token',
+	}
+
+	self:urlPost (url, data, headers, 'GetTokenResponse', context)
 end
 
 function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
@@ -423,7 +433,11 @@ function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, c
 
 		self:setLink ('')
 
-		self.metrics:SetCounter ('AccessTokenGranted')
+		if (context.reason == 'refresh_token') then
+			self.metrics:SetCounter ('AccessTokenRefreshed')
+		elseif (context.reason == 'authorization_code') then
+			self.metrics:SetCounter ('AccessTokenGranted')
+		end
 		self:notify ('AccessTokenGranted', contextInfo, self.ACCESS_TOKEN, self.REFRESH_TOKEN)
 	elseif (responseCode >= 400 and responseCode < 500) then
 		self.ACCESS_TOKEN = nil
@@ -438,6 +452,7 @@ function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, c
 		self:setLink ('')
 
 		self.metrics:SetCounter ('AccessTokenDenied')
+		self.metrics:SetString ('AccessTokenDeniedResponseCode', tostring (responseCode))
 		if (data.error) then
 			self.metrics:SetString ('AccessTokenDeniedReason', data.error)
 		end
