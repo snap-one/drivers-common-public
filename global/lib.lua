@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 57
+COMMON_LIB_VER = 58
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1078,6 +1078,105 @@ function GetPathToDevice (deviceId, project)
 	drill (project)
 
 	return (path)
+end
+
+function BuildRoomHierarchy ()
+	local projectInfo = C4:GetProjectItems ('LOCATIONS', 'NO_ROOT_TAGS', 'LIMIT_DEVICE_DATA')
+
+	local sites = {}
+	local buildings = {}
+	local floors = {}
+	local rooms = {}
+
+	local sitesById = {}
+	local buildingsById = {}
+	local floorsById = {}
+	local roomsById = {}
+
+	local lastSiteId, lastSiteName, lastBuildingId, lastBuildingName, lastFloorId, lastFloorName
+	for item in string.gmatch (projectInfo, '<item>.-</type>') do
+		local id, name, itemType = string.match (item, '<id>(.-)</id><name>(.-)</name><type>(.-)</type>')
+		id = tonumber (id)
+		itemType = tonumber (itemType)
+		if (id) then
+			if (itemType == PROJECT_ITEM_TYPES.SITE) then
+				lastSiteId = id
+				lastSiteName = name
+				local siteInfo = {
+					id = id,
+					name = name,
+					siteId = id,
+					siteName = name,
+				}
+				table.insert (sites, siteInfo)
+				siteInfo.index = #sites
+				sitesById [id] = siteInfo
+			elseif (itemType == PROJECT_ITEM_TYPES.BUILDING) then
+				lastBuildingId = id
+				lastBuildingName = name
+				local buildingInfo = {
+					id = id,
+					name = name,
+					buildingId = id,
+					buildingName = name,
+					siteId = lastSiteId,
+					siteName = lastSiteName,
+					siteData = sitesById [lastSiteId],
+				}
+				table.insert (buildings, buildingInfo)
+				buildingInfo.index = #buildings
+				buildingsById [id] = buildingInfo
+			elseif (itemType == PROJECT_ITEM_TYPES.FLOOR) then
+				lastFloorId = id
+				lastFloorName = name
+				local floorInfo = {
+					id = id,
+					name = name,
+					floorId = id,
+					floorName = name,
+					buildingId = lastBuildingId,
+					buildingName = lastBuildingName,
+					buildingData = buildingsById [lastBuildingId],
+					siteId = lastSiteId,
+					siteName = lastSiteName,
+					siteData = sitesById [lastSiteId],
+				}
+				table.insert (floors, floorInfo)
+				floorInfo.index = #floors
+				floorsById [id] = floorInfo
+			elseif (itemType == PROJECT_ITEM_TYPES.ROOM_DEVICE) then
+				local roomInfo = {
+					id = id,
+					name = name,
+					roomId = id,
+					roomName = name,
+					floorId = lastFloorId,
+					floorName = lastFloorName,
+					floorData = floorsById [lastFloorId],
+					buildingId = lastBuildingId,
+					buildingName = lastBuildingName,
+					buildingData = buildingsById [lastBuildingId],
+					siteId = lastSiteId,
+					siteName = lastSiteName,
+					siteData = sitesById [lastSiteId],
+				}
+				table.insert (rooms, roomInfo)
+				roomInfo.index = #rooms
+				roomsById [id] = roomInfo
+			end
+		end
+	end
+
+	ProjectLayout = {
+		sites = sites,
+		buildings = buildings,
+		floors = floors,
+		rooms = rooms,
+		sitesById = sitesById,
+		buildingsById = buildingsById,
+		floorsById = floorsById,
+		roomsById = roomsById,
+	}
 end
 
 function GetLocals (depth)
