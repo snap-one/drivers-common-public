@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 35
+AUTH_CODE_GRANT_VER = 36
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -382,7 +382,7 @@ end
 
 function oauthObject:GetTokenResponse (strError, responseCode, tHeaders, data, context, url)
 	CancelTimer (self.timerPrefix .. 'RefreshCollisionAvoidance')
-	self.RefreshingToken = true
+	self.RefreshingToken = false
 
 	if (strError) then
 		dbg ('Error with GetToken:', strError)
