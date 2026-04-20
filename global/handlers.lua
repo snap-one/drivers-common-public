@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 33
+COMMON_HANDLERS_VER = 34
 
 do -- define globals
 	DEBUG_RFN = false
@@ -436,8 +436,6 @@ function UnregisterDeviceEvent (firingDeviceId, eventId)
 end
 
 function OnDeviceEvent (firingDeviceId, eventId)
-	Print (firingDeviceId)
-	Print (eventId)
 	local suppressDebug = Select (ODE, 'suppressDebug', firingDeviceId, eventId)
 
 	if (not suppressDebug) then
