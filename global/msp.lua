@@ -747,7 +747,7 @@ function ParseRoomIds (roomIdsToParse, firstRoomId)
 		end
 	elseif (type (roomIdsToParse) == 'string') then
 		if (#roomIdsToParse > 0) then
-			for roomId in string.gmatch (roomIdsToParse .. ',', '(.-)[,$]') do
+			for roomId in string.gmatch (roomIdsToParse .. ',', '(.-),') do
 				local roomId = tonumber (roomId)
 				if (roomId) then
 					table.insert (roomIds, roomId)
