@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 34
+COMMON_HANDLERS_VER = 35
 
 do -- define globals
 	DEBUG_RFN = false
@@ -486,6 +486,42 @@ function UpdateProperty (strProperty, strValue, notifyChange)
 
 	if (Properties [strProperty] ~= strValue) then
 		C4:UpdateProperty (strProperty, strValue)
+	end
+	if (notifyChange == true) then
+		OnPropertyChanged (strProperty)
+	end
+end
+
+function UpdatePropertyList (strProperty, strValue, notifyChange)
+	if (type (strProperty) ~= 'string') then
+		MetricsHandler:SetCounter ('Error_UpdatePropertyList')
+		print ('UpdatePropertyList error (strProperty not string): ', tostring (strProperty), tostring (strValue))
+		return
+	end
+
+	if (Properties [strProperty] == nil) then
+		MetricsHandler:SetCounter ('Error_UpdatePropertyList')
+		print ('UpdatePropertyList error (Property not present in Properties table): ', tostring (strProperty),
+			tostring (strValue))
+		return
+	end
+
+	if (strValue == nil) then
+		strValue = ''
+	elseif (type (strValue) == 'table') then
+		table.sort (strValue)
+		strValue = table.concat (strValue, ',')
+	elseif (type (strValue) ~= 'string') then
+		strValue = tostring (strValue)
+	end
+
+	if (PropertyLists == nil) then
+		PropertyLists = {}
+	end
+
+	if (PropertyLists [strProperty] ~= strValue) then
+		C4:UpdatePropertyList (strProperty, strValue)
+		PropertyLists [strProperty] = strValue
 	end
 	if (notifyChange == true) then
 		OnPropertyChanged (strProperty)
