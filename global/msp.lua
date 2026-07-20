@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 137
+COMMON_MSP_VER = 138
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -157,11 +157,11 @@ function OnDriverLateInit (driverInitType)
 		}
 		local err = table.concat (err, ' ')
 
-		C4:UpdateProperty ('Driver Version', err)
+		UpdateProperty ('Driver Version', err)
 		for property, _ in pairs (Properties) do
-			C4:SetPropertyAttribs (property, 1)
+			SetPropertyVisible (property, false)
 		end
-		C4:SetPropertyAttribs ('Driver Version', 0)
+		SetPropertyVisible ('Driver Version', true)
 		C4:SendToProxy (MSP_PROXY, 'DISABLE_DRIVER', {}, 'COMMAND')
 		return
 	end
@@ -285,8 +285,7 @@ function OPC.Debug_Mode (value)
 
 	if (DEBUGPRINT) then
 		local _timer = function (timer)
-			C4:UpdateProperty ('Debug Mode', 'Off')
-			OnPropertyChanged ('Debug Mode')
+			UpdateProperty ('Debug Mode', 'Off', true)
 		end
 		SetTimer ('DEBUGPRINT', 36000000, _timer)
 	end
@@ -298,7 +297,7 @@ function OPC.Driver_Version (value)
 	if (not (IN_PRODUCTION)) then
 		version = version .. ' DEV VERSION DO NOT SHIP'
 	end
-	C4:UpdateProperty ('Driver Version', version)
+	UpdateProperty ('Driver Version', version)
 end
 
 function OPC.Progress_Bar_Updates (value)
