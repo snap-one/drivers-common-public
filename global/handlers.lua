@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 35
+COMMON_HANDLERS_VER = 36
 
 do -- define globals
 	DEBUG_RFN = false
@@ -489,6 +489,32 @@ function UpdateProperty (strProperty, strValue, notifyChange)
 	end
 	if (notifyChange == true) then
 		OnPropertyChanged (strProperty)
+	end
+end
+
+function SetPropertyVisible (property, visible)
+	if (type (property) ~= 'string') then
+		MetricsHandler:SetCounter ('Error_SetPropertyVisible')
+		print ('SetPropertyVisible error (property not string): ', tostring (property), tostring (visible))
+		return
+	end
+
+	if (Properties [property] == nil) then
+		MetricsHandler:SetCounter ('Error_SetPropertyVisible')
+		print ('SetPropertyVisible error (Property not present in Properties table): ', tostring (property),
+			tostring (visible))
+		return
+	end
+
+	visible = GetTruthy (visible)
+
+	if (PropertyVisibility == nil) then
+		PropertyVisibility = {}
+	end
+
+	if (PropertyVisibility [property] ~= visible) then
+		C4:SetPropertyAttribs (property, visible and 0 or 1)
+		PropertyVisibility [property] = visible
 	end
 end
 
