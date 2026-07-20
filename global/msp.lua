@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 138
+COMMON_MSP_VER = 139
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -843,7 +843,11 @@ function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, rad
 		local nextTrackIndex = (playOption == 'SHUFFLE' and math.random (#trackList)) or 1
 
 		if (playNow or clearQ) then
-			LogPlayEvent ('user', qId, 'NEW_TRACKS_ADDED', trackList [nextTrackIndex])
+			local source = 'user'
+			if (playOption == 'RADIO_NEXT') then
+				source = 'queue'
+			end
+			LogPlayEvent (source, qId, 'NEW_TRACKS_ADDED', trackList [nextTrackIndex])
 		end
 
 		if (clearQ) then
@@ -2301,6 +2305,7 @@ function LogPlayEvent (source, qId, event, nextTrack)
 		elseif (event == 'STOP') then
 		elseif (event == 'END') then
 		elseif (event == 'DELETED') then
+		elseif (event == 'NEW_TRACKS_ADDED') then -- this is on a RADIO_NEXT
 		end
 	elseif (source == 'queue_status') then
 		if (event == 'OK_addmed') then
