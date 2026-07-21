@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 36
+COMMON_HANDLERS_VER = 37
 
 do -- define globals
 	DEBUG_RFN = false
@@ -466,13 +466,13 @@ end
 
 function UpdateProperty (strProperty, strValue, notifyChange)
 	if (type (strProperty) ~= 'string') then
-		MetricsHandler:SetCounter ('Error_UpdateProperty')
+		MetricsHandler:SetCounter ('Error_UpdateProperty_Not_String')
 		print ('UpdateProperty error (strProperty not string): ', tostring (strProperty), tostring (strValue))
 		return
 	end
 
 	if (Properties [strProperty] == nil) then
-		MetricsHandler:SetCounter ('Error_UpdateProperty')
+		MetricsHandler:SetCounter ('Error_UpdateProperty_Not_Present')
 		print ('UpdateProperty error (Property not present in Properties table): ', tostring (strProperty),
 			tostring (strValue))
 		return
@@ -482,6 +482,94 @@ function UpdateProperty (strProperty, strValue, notifyChange)
 		strValue = ''
 	elseif (type (strValue) ~= 'string') then
 		strValue = tostring (strValue)
+	end
+
+	local configXML = C4:GetDriverConfigInfo ('config')
+	for propertyXML in XMLgCapture (configXML, 'property') do
+		local propertyName = XMLCapture (propertyXML, 'name')
+		if (propertyName == strProperty) then
+			local propertyType = XMLCapture (propertyXML, 'type')
+			if (propertyType == 'LIST') then
+				local valueFound = false
+				for listItem in XMLgCapture (propertyXML, 'item') do
+					if (listItem == strValue) then
+						valueFound = true
+						break
+					end
+				end
+				if (not valueFound) then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_List_Item_Not_Found')
+					print ('UpdateProperty error (Value not in list): ', tostring (strProperty), tostring (strValue))
+					return
+				end
+			elseif (propertyType == 'DYNAMIC_LIST')	then
+				if (PropertyLists [strProperty]) then
+					local valueFound = false
+					for listItem in string.gmatch (PropertyLists [strProperty] .. ',', '(.-),') do
+						if (listItem == strValue) then
+							valueFound = true
+							break
+						end
+					end
+					if (not valueFound) then
+						MetricsHandler:SetCounter ('Error_UpdateProperty_Dynamic_List_Item_Not_Found')
+						print ('UpdateProperty error (Value not in dynamic list): ', tostring (strProperty), tostring (strValue))
+						return
+					end
+				end
+			elseif (propertyType == 'RANGED_INTEGER') then
+				local minValue = tonumber (XMLCapture (propertyXML, 'minimum'))
+				local maxValue = tonumber (XMLCapture (propertyXML, 'maximum'))
+				local numValue = tonumber (strValue)
+				if (type (numValue) ~= 'number') then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Ranged_Integer_Not_Number')
+					print ('UpdateProperty error (Value not a number): ', tostring (strProperty), tostring (strValue))
+					return
+				end
+				if (math.floor (numValue) ~= numValue) then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Ranged_Integer_Not_Integer')
+					print ('UpdateProperty error (Value not an integer): ', tostring (strProperty), tostring (strValue))
+					return
+				end
+				if (numValue == nil or numValue < minValue or numValue > maxValue) then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Ranged_Integer_Out_of_Range')
+					print ('UpdateProperty error (Value out of range): ', tostring (strProperty), tostring (strValue),
+						'Range: [' .. tostring (minValue) .. ', ' .. tostring (maxValue) .. ']')
+					return
+				end
+			elseif (propertyType == 'RANGED_FLOAT') then
+				local minValue = tonumber (XMLCapture (propertyXML, 'minimum'))
+				local maxValue = tonumber (XMLCapture (propertyXML, 'maximum'))
+				local numValue = tonumber (strValue)
+				if (type (numValue) ~= 'number') then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Ranged_Float_Not_Number')
+					print ('UpdateProperty error (Value not a number): ', tostring (strProperty), tostring (strValue))
+					return
+				end
+				if (numValue == nil or numValue < minValue or numValue > maxValue) then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Ranged_Float_Out_of_Range')
+					print ('UpdateProperty error (Value out of range): ', tostring (strProperty), tostring (strValue),
+						'Range: [' .. tostring (minValue) .. ', ' .. tostring (maxValue) .. ']')
+					return
+				end
+			elseif (propertyType == 'COLOR_SELECTOR') then
+				local red, green, blue = string.match (strValue, '(%d+),(%d+),(%d+)')
+				red = tonumber (red)
+				green = tonumber (green)
+				blue = tonumber (blue)
+				if (type (red) ~= 'number' or type (green) ~= 'number' or type (blue) ~= 'number') then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Color_Selector_Not_RGB_Triplet')
+					print ('UpdateProperty error (Value not an RGB triplet): ', tostring (strProperty), tostring (strValue))
+					return
+				end
+				if (red < 0 or red > 255 or green < 0 or green > 255 or blue < 0 or blue > 255) then
+					MetricsHandler:SetCounter ('Error_UpdateProperty_Color_Selector_RGB_Out_of_Range')
+					print ('UpdateProperty error (RGB value out of range): ', tostring (strProperty), tostring (strValue))
+					return
+				end
+			end
+			break
+		end
 	end
 
 	if (Properties [strProperty] ~= strValue) then
