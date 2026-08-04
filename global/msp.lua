@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 139
+COMMON_MSP_VER = 140
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1565,6 +1565,16 @@ function JoinRoomToSession (roomIds, qId)
 	local roomIds, firstRoomId = ParseRoomIds (roomIds)
 
 	local sessionQueue = GetRoomMapByQueueID (qId)
+
+	for i = #roomIds, 1, -1 do
+		local roomId = roomIds [i]
+		for _, sessionRoomId in ipairs (sessionQueue) do
+			if (roomId == sessionRoomId) then
+				table.remove (roomIds, i)
+				break
+			end
+		end
+	end
 
 	if (#roomIds > 0 and sessionQueue.ownerId) then
 		local roomList = table.concat (roomIds, ',')
