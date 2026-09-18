@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 140
+COMMON_MSP_VER = 141
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -779,7 +779,7 @@ function ParseRoomIds (roomIdsToParse, firstRoomId)
 	return roomIds, firstRoomId
 end
 
-function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, radioSkips, containerInfo)
+function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, radioSkips, containerInfo, nowPlayingSeq, nowPlayingNavId)
 	local trackCount = 0
 	if (type (trackList) == 'table') then
 		trackCount = #trackList
@@ -962,6 +962,9 @@ function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, rad
 	end
 
 	if (playNow) then
+		SongQs [qId].nowPlayingSeq = nowPlayingSeq
+		SongQs [qId].nowPlayingNavId = nowPlayingNavId
+
 		local _, nextTrack = next (trackList or {})
 
 		if (nextTrack) then
@@ -2131,6 +2134,13 @@ function OnQueueStreamStatusChanged (idBinding, tParams)
 				MetricsMSP:SetCounter ('QueueStreamStatus_' .. status.status)
 
 				LogPlayEvent ('queue_status', qId, status.status)
+			end
+			if (status.status == 'OK_playing') then
+				if (thisQ.nowPlayingSeq and thisQ.nowPlayingNavId) then
+					DataReceived (5001, thisQ.nowPlayingNavId, thisQ.nowPlayingSeq, { NextScreen = '#nowplaying', })
+					thisQ.nowPlayingSeq = nil
+					thisQ.nowPlayingNavId = nil
+				end
 			end
 		end
 	end
