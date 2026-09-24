@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 141
+COMMON_MSP_VER = 142
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -798,7 +798,14 @@ function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, rad
 	-- seek clarity around owner/are we creating a new q/updating existing q
 
 	local qId = GetQueueIDByRoomID (firstRoomId)
-	local thisQ = SongQs [qId] or SongQs [firstRoomId]
+
+	local thisQ
+	if (qId and SongQs [qId]) then
+		thisQ = SongQs [qId]
+	else
+		qId = firstRoomId
+		thisQ = SongQs [firstRoomId]
+	end
 
 	local idInQ = (thisQ and thisQ.idInQ) or 1
 
@@ -889,7 +896,6 @@ function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, rad
 		UpdateDashboard (qId)
 	else
 		playNow = true
-		qId = firstRoomId
 
 		local isRadio = (playOption == 'RADIO' and radioInfo) or nil
 		local isStream = (playOption == 'STREAM' and radioInfo) or nil
@@ -1142,7 +1148,6 @@ function QueueSetShuffle (qId)
 
 	if (thisQ) then
 		if (not (thisQ.SHUFFLE or thisQ.STREAM or thisQ.RADIO)) then
-			local roomId = GetRoomMapByQueueID (qId) [1]
 			local newQ = {}
 			local order = {}
 
@@ -1729,16 +1734,18 @@ function UpdateMediaInfo (qId)
 end
 
 function UpdateQueue (qId, options)
+	local rooms = GetRoomMapByQueueID (qId)
+	if (#rooms == 0) then
+		return
+	end
+
 	if (type (options) ~= 'table') then
 		options = {}
 	end
 
 	local thisQ = SongQs [qId]
 
-	if (thisQ and GetRoomMapByQueueID (qId) [1]) then
-		local rooms = GetRoomMapByQueueID (qId)
-		local rooms = table.concat (rooms, ',')
-
+	if (thisQ) then
 		local index = thisQ.CurrentTrack
 
 		local start, finish
@@ -1821,28 +1828,35 @@ function UpdateQueue (qId, options)
 			thisQ.LastQueueList = list
 		end
 
+		local rooms = table.concat (rooms, ',')
 		SendEvent (MSP_PROXY, nil, rooms, 'QueueChanged', event)
 	end
 end
 
 function UpdateDashboard (qId)
+	local rooms = GetRoomMapByQueueID (qId)
+	if (#rooms == 0) then
+		return
+	end
+
 	local thisQ = SongQs [qId]
 
-	if (thisQ and GetRoomMapByQueueID (qId) [1]) then
+	if (thisQ) then
 		local dashboard = GetDashboardByQueue (qId)
-		local rooms = GetRoomMapByQueueID (qId)
-		local rooms = table.concat (rooms, ',')
 
+		local rooms = table.concat (rooms, ',')
 		SendEvent (MSP_PROXY, nil, rooms, 'DashboardChanged', { QueueId = qId, Items = dashboard, })
 	end
 end
 
 function UpdateProgress (qId)
-	local thisQ = SongQs [qId]
-	if (thisQ and GetRoomMapByQueueID (qId) [1]) then
-		local rooms = GetRoomMapByQueueID (qId)
-		local rooms = table.concat (rooms, ',')
+	local rooms = GetRoomMapByQueueID (qId)
+	if (#rooms == 0) then
+		return
+	end
 
+	local thisQ = SongQs [qId]
+	if (thisQ) then
 		local args
 
 		if (UPDATE_FREQ) then
@@ -1878,6 +1892,7 @@ function UpdateProgress (qId)
 		end
 
 		if (args) then
+			local rooms = table.concat (rooms, ',')
 			SendEvent (MSP_PROXY, nil, rooms, 'ProgressChanged', args)
 		end
 	end
