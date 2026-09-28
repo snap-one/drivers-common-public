@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 142
+COMMON_MSP_VER = 143
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -968,9 +968,10 @@ function AddTracksToQueue (trackList, roomIdsToParse, playOption, radioInfo, rad
 	end
 
 	if (playNow) then
-		SongQs [qId].nowPlayingSeq = nowPlayingSeq
-		SongQs [qId].nowPlayingNavId = nowPlayingNavId
-
+		if (nowPlayingSeq and nowPlayingNavId) then
+			SongQs [qId].nowPlayingSeq = nowPlayingSeq
+			SongQs [qId].nowPlayingNavId = nowPlayingNavId
+		end
 		local _, nextTrack = next (trackList or {})
 
 		if (nextTrack) then
