@@ -1,6 +1,6 @@
--- Copyright 2025 Snap One, LLC. All rights reserved.
+-- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 28
+COMMON_URL_VER = 29
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -36,17 +36,10 @@ do --Setup Metrics
 	MetricsURL = Metrics:new ('dcp_url', COMMON_URL_VER)
 end
 
-function MakeURL (path, args, suppressDefaultArgs)
-	local url = {}
+function MakeURL (path, args, suppressDefaultArgs, appendToURL)
 	local args = (type (args) == 'table' and args) or {}
 
 	local schemePart, authorityPart, pathPart, pagePart, queryPart, fragmentPart
-
-	if (DEFAULT_URL_ARGS and type (DEFAULT_URL_ARGS) == 'table' and suppressDefaultArgs ~= true) then
-		for k, v in pairs (DEFAULT_URL_ARGS) do
-			args [k] = v
-		end
-	end
 
 	local alreadyHasHTTP = string.find ((path or ''), '^https?:')
 	local alreadyHasController = string.find ((path or ''), '^controller:')
@@ -115,6 +108,16 @@ function MakeURL (path, args, suppressDefaultArgs)
 		end
 	end
 
+	if (type (DEFAULT_URL_ARGS) == 'table' and suppressDefaultArgs ~= true) then
+		for k, v in pairs (DEFAULT_URL_ARGS) do
+			if (args [k] == nil) then
+				args [k] = v
+			end
+		end
+	end
+
+	local url = {}
+
 	if (schemePart) then
 		table.insert (url, schemePart)
 	end
@@ -126,6 +129,9 @@ function MakeURL (path, args, suppressDefaultArgs)
 	end
 	if (pagePart) then
 		table.insert (url, pagePart)
+	end
+	if (appendToURL) then
+		table.insert (url, appendToURL)
 	end
 
 	local urlargs = {}
