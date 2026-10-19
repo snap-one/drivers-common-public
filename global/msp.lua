@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_MSP_VER = 143
+COMMON_MSP_VER = 144
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -2079,7 +2079,14 @@ function OnQueueStateChanged (idBinding, tParams)
 					end
 				end
 
-				if (SUPPORTS_GAPLESS and thisQ.CurrentTrackElapsed + 15 >= thisQ.CurrentTrackDuration and thisQ.CurrentTrackDuration ~= 0) then
+				if (thisQ.CurrentTrackDuration == 0) then
+					return
+				end
+
+				local timeRemaining = thisQ.CurrentTrackDuration - thisQ.CurrentTrackElapsed
+				local isNearEndOfTrack = timeRemaining <= 15 and timeRemaining > 0
+
+				if (SUPPORTS_GAPLESS and isNearEndOfTrack) then
 					if (not (thisQ.nextUrlRequested or thisQ.nextUrlSent)) then
 						if (thisQ.STREAM) then
 						elseif (thisQ.RADIO) then
@@ -2091,6 +2098,10 @@ function OnQueueStateChanged (idBinding, tParams)
 							end
 						end
 					end
+				end
+
+				if (timeRemaining <= 0) then
+					CancelTimer ('MSP_QueueProgress_' .. tostring (qId))
 				end
 			end
 
