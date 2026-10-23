@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_LIB_VER = 58
+COMMON_LIB_VER = 59
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -1177,24 +1177,6 @@ function BuildRoomHierarchy ()
 		floorsById = floorsById,
 		roomsById = roomsById,
 	}
-end
-
-function GetLocals (depth)
-	local vars = {}
-	local i = 1
-	depth = depth or 2
-
-	while (true) do
-		local name, value = debug.getlocal (depth, i)
-		if (name ~= nil) then
-			vars [name] = value
-		else
-			break
-		end
-		i = i + 1
-	end
-
-	return vars
 end
 
 function GetRandomString (length, alphaFirst)
