@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-AUTH_CODE_GRANT_VER = 36
+AUTH_CODE_GRANT_VER = 37
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.url')
@@ -200,7 +200,7 @@ function oauthObject:GetLinkCode (state, contextInfo, extraParamsForAuthLink)
 		local _linkCallback = function (shortLink)
 			self:setLink (shortLink, contextInfo)
 		end
-		MakeShortLink (link, _linkCallback, self.SHORT_LINK_AUTHORIZATION)
+		MakeShortLink (link, _linkCallback, self.SHORT_LINK_AUTHORIZATION, self.REDIRECT_DURATION)
 	else
 		self:setLink (link, contextInfo)
 	end
