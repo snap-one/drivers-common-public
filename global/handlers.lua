@@ -3,12 +3,13 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 37
+COMMON_HANDLERS_VER = 38
 
 do -- define globals
 	DEBUG_RFN = false
 	SSDP = SSDP
 	WebSocket = WebSocket
+	PropertyLists = PropertyLists or {}
 end
 
 --[[ Inbound Driver Functions:
@@ -627,10 +628,6 @@ function UpdatePropertyList (strProperty, strValue, notifyChange)
 		strValue = table.concat (strValue, ',')
 	elseif (type (strValue) ~= 'string') then
 		strValue = tostring (strValue)
-	end
-
-	if (PropertyLists == nil) then
-		PropertyLists = {}
 	end
 
 	if (PropertyLists [strProperty] ~= strValue) then
