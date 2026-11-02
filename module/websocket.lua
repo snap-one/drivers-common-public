@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 15
+COMMON_WEBSOCKET_VER = 16
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -13,7 +13,7 @@ do -- define globals
 	DEBUG_WEBSOCKET = DEBUG_WEBSOCKET or false
 end
 
-function wsObject:new (url, additionalHeaders, wssOptions)
+function wsObject:new (url, additionalHeaders, wssOptions, keepAliveOptions)
 	if (type (additionalHeaders) ~= 'table') then
 		additionalHeaders = nil
 	end
@@ -55,6 +55,32 @@ function wsObject:new (url, additionalHeaders, wssOptions)
 		wssOptions = {}
 	end
 
+	if (type (keepAliveOptions) ~= 'table') then
+		keepAliveOptions = {}
+	end
+
+	if (type (keepAliveOptions.sendPings) ~= 'boolean') then
+		keepAliveOptions.sendPings = true
+	end
+
+	if (type (keepAliveOptions.pingInterval) ~= 'number') then
+		keepAliveOptions.pingInterval = 30
+	elseif (keepAliveOptions.pingInterval < 15) then
+		keepAliveOptions.pingInterval = 15
+	end
+
+	if (type (keepAliveOptions.pongResponseTimeout) ~= 'number') then
+		keepAliveOptions.pongResponseTimeout = 10
+	elseif (keepAliveOptions.pongResponseTimeout < 5) then
+		keepAliveOptions.pongResponseTimeout = 5
+	end
+
+	if (type (keepAliveOptions.missedPongsTrigger) ~= 'number') then
+		keepAliveOptions.missedPongsTrigger = 1
+	elseif (keepAliveOptions.missedPongsTrigger < 1) then
+		keepAliveOptions.missedPongsTrigger = 1
+	end
+
 	if (protocol and host and port and resource) then
 		local ws = {
 			url = url,
@@ -63,10 +89,13 @@ function wsObject:new (url, additionalHeaders, wssOptions)
 			port = port,
 			resource = resource,
 			buf = '',
-			ping_interval = 30,
-			pong_response_interval = 10,
 			additionalHeaders = additionalHeaders or {},
 			wssOptions = wssOptions,
+			sendPings = keepAliveOptions.sendPings,
+			pingInterval = keepAliveOptions.pingInterval,
+			pongResponseTimeout = keepAliveOptions.pongResponseTimeout,
+			missedPongsTrigger = keepAliveOptions.missedPongsTrigger,
+			missedPongs = 0,
 		}
 
 		ws.timerPrefix = 'WS_' .. url .. '_Timer_'
@@ -407,6 +436,7 @@ function wsObject:parseWSPacket ()
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PONG')
 			end
+			self.missedPongs = 0
 			CancelTimer (self.timerPrefix .. 'PongResponse')
 		elseif (opcode == 0x00) then -- continuation frame
 			if (not self.fragment) then
@@ -487,11 +517,15 @@ function wsObject:Ping ()
 		end
 
 		local _timer = function (timer)
+			self.missedPongs = self.missedPongs + 1
 			self.metrics:SetCounter ('MissingPong')
-			print ('WS ' .. self.url .. ' appears disconnected - timed out waiting for PONG')
-			self:Close ()
+			if (self.missedPongs >= self.missedPongsTrigger) then
+				print ('WS ' .. self.url .. ' appears disconnected - timed out waiting for PONG (' .. tostring (self.missedPongs) .. ' missed)')
+				self.metrics:SetCounter ('MissingPongClosing')
+				self:Close ()
+			end
 		end
-		SetTimer (self.timerPrefix .. 'PongResponse', self.pong_response_interval * ONE_SECOND, _timer)
+		SetTimer (self.timerPrefix .. 'PongResponse', self.pongResponseTimeout * ONE_SECOND, _timer)
 
 		self:sendToNetwork (pkt)
 	end
@@ -517,10 +551,12 @@ function wsObject:ConnectionChanged (strStatus)
 		local pkt = self:MakeHeaders ()
 		self:sendToNetwork (pkt)
 
-		local _timer = function (timer)
-			self:Ping ()
+		if (self.sendPings) then
+			local _timer = function (timer)
+				self:Ping ()
+			end
+			SetTimer (self.timerPrefix .. 'Ping', self.pingInterval * ONE_SECOND, _timer, true)
 		end
-		SetTimer (self.timerPrefix .. 'Ping', self.ping_interval * ONE_SECOND, _timer, true)
 		self.metrics:SetCounter ('Connected')
 		print ('WS ' .. self.url .. ' connected')
 	else
