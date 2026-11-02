@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 39
+COMMON_HANDLERS_VER = 40
 
 do -- define globals
 	DEBUG_RFN = false
@@ -849,6 +849,29 @@ function RegisterVariableListener (idDevice, idVariable, callback)
 		MetricsHandler:SetCounter ('Error_RegisterVariableListener')
 		print ('RegisterVariableListener error (Invalid idDevice / idVariable): ', tostring (idDevice),
 			tostring (idVariable), tostring (callback))
+		return
+	end
+
+	if (type (idVariable) == 'string') then
+		local vars = C4:GetDeviceVariables (idDevice)
+		local found = false
+		for id, var in pairs (vars or {}) do
+			if (var.name == idVariable) then
+				found = true
+				idVariable = tonumber (id)
+				break
+			end
+		end
+		if (not found) then
+			MetricsHandler:SetCounter ('Error_RegisterVariableListener')
+			print ('RegisterVariableListener error (Variable not found): ', idDevice, idVariable)
+			return
+		end
+	end
+
+	if (type (idVariable) ~= 'number') then
+		MetricsHandler:SetCounter ('Error_RegisterVariableListener')
+		print ('RegisterVariableListener error (idVariable not a number): ', idDevice, idVariable)
 		return
 	end
 
