@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 38
+COMMON_HANDLERS_VER = 39
 
 do -- define globals
 	DEBUG_RFN = false
@@ -279,10 +279,13 @@ function HandlerDebug (init, tParams, args)
 	C4:DebugLog (output)
 end
 
-function ExecuteCommand (strCommand, tParams)
+function ExecuteCommand (strCommand, tParams, instantSuppressDebug)
 	tParams = tParams or {}
 
 	local suppressDebug = Select (EC, 'suppressDebug', strCommand)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -318,8 +321,11 @@ function ExecuteCommand (strCommand, tParams)
 	end
 end
 
-function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
+function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBindingId, instantSuppressDebug)
 	local suppressDebug = Select (OBC, 'suppressDebug', idBinding)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -352,8 +358,11 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 	end
 end
 
-function OnConnectionStatusChanged (idBinding, nPort, strStatus)
+function OnConnectionStatusChanged (idBinding, nPort, strStatus, instantSuppressDebug)
 	local suppressDebug = Select (OCS, 'suppressDebug', idBinding)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -436,8 +445,11 @@ function UnregisterDeviceEvent (firingDeviceId, eventId)
 	end
 end
 
-function OnDeviceEvent (firingDeviceId, eventId)
+function OnDeviceEvent (firingDeviceId, eventId, instantSuppressDebug)
 	local suppressDebug = Select (ODE, 'suppressDebug', firingDeviceId, eventId)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -639,13 +651,16 @@ function UpdatePropertyList (strProperty, strValue, notifyChange)
 	end
 end
 
-function OnPropertyChanged (strProperty)
+function OnPropertyChanged (strProperty, instantSuppressDebug)
 	local value = Properties [strProperty]
 	if (type (value) ~= 'string') then
 		value = ''
 	end
 
 	local suppressDebug = Select (OPC, 'suppressDebug', strProperty)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -675,7 +690,7 @@ function OnPropertyChanged (strProperty)
 	end
 end
 
-function OnSystemEvent (event)
+function OnSystemEvent (event, instantSuppressDebug)
 	local eventName = string.match (event, '.-name="(.-)"')
 
 	if (eventName == 'OnDataToUI') then
@@ -687,6 +702,9 @@ function OnSystemEvent (event)
 	end
 
 	local suppressDebug = Select (OSE, 'suppressDebug', eventName)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -783,7 +801,7 @@ function SetVariable (strVariable, strValue, notifyChange)
 	end
 end
 
-function OnVariableChanged (strVariable, variableId)
+function OnVariableChanged (strVariable, variableId, instantSuppressDebug)
 	local value = Variables [strVariable]
 	if (value == nil) then
 		value = ''
@@ -791,6 +809,9 @@ function OnVariableChanged (strVariable, variableId)
 
 	local suppressDebug = Select (OVC, 'suppressDebug', strVariable) or
 		Select (OVC, 'suppressDebug', variableId)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -863,8 +884,11 @@ function UnregisterVariableListener (idDevice, idVariable)
 	end
 end
 
-function OnWatchedVariableChanged (idDevice, idVariable, strValue)
+function OnWatchedVariableChanged (idDevice, idVariable, strValue, instantSuppressDebug)
 	local suppressDebug = Select (OWVC, 'suppressDebug', idDevice, idVariable)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -881,11 +905,10 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue)
 
 	local success, ret
 
-	if (OWVC and
-			OWVC [idDevice] and
-			OWVC [idDevice] [idVariable] and
-			type (OWVC [idDevice] [idVariable]) == 'function') then
-		success, ret = pcall (OWVC [idDevice] [idVariable], idDevice, idVariable, strValue)
+	local owvcFunction = Select (OWVC, idDevice, idVariable)
+
+	if (type (owvcFunction) == 'function') then
+		success, ret = pcall (owvcFunction, idDevice, idVariable, strValue)
 	else
 		success = false
 		ret = 'Callback not available for registered variable'
@@ -901,12 +924,15 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue)
 	end
 end
 
-function ReceivedFromNetwork (idBinding, nPort, strData)
+function ReceivedFromNetwork (idBinding, nPort, strData, instantSuppressDebug)
 	local suppressDebug = Select (RFN, 'suppressDebug', idBinding) or
 		Select (SSDP, 'SearchTargets', idBinding) or
 		(Select (WebSocket, 'Sockets', idBinding) and not DEBUG_WEBSOCKET)
 
 	suppressDebug = suppressDebug and (not DEBUG_RFN)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -938,7 +964,7 @@ function ReceivedFromNetwork (idBinding, nPort, strData)
 	end
 end
 
-function ReceivedFromProxy (idBinding, strCommand, tParams)
+function ReceivedFromProxy (idBinding, strCommand, tParams, instantSuppressDebug)
 	strCommand = strCommand or ''
 	tParams = tParams or {}
 	local args = {}
@@ -951,6 +977,9 @@ function ReceivedFromProxy (idBinding, strCommand, tParams)
 	end
 
 	local suppressDebug = Select (RFP, 'suppressDebug', idBinding, strCommand)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -981,11 +1010,14 @@ function ReceivedFromProxy (idBinding, strCommand, tParams)
 	end
 end
 
-function TestCondition (strConditionName, tParams)
+function TestCondition (strConditionName, tParams, instantSuppressDebug)
 	strConditionName = strConditionName or ''
 	tParams = tParams or {}
 
 	local suppressDebug = Select (TC, 'suppressDebug', strConditionName)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
@@ -1012,11 +1044,14 @@ function TestCondition (strConditionName, tParams)
 	end
 end
 
-function UIRequest (strCommand, tParams)
+function UIRequest (strCommand, tParams, instantSuppressDebug)
 	strCommand = strCommand or ''
 	tParams = tParams or {}
 
 	local suppressDebug = Select (UIR, 'suppressDebug', strCommand)
+	if (type (instantSuppressDebug) == 'boolean') then
+		suppressDebug = instantSuppressDebug
+	end
 
 	if (not suppressDebug) then
 		local init = {
