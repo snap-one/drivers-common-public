@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_SSDP_VER = 12
+COMMON_SSDP_VER = 13
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -45,7 +45,7 @@ function ssdpObject:new (searchTarget, options)
 end
 
 function ssdpObject:delete ()
-	self:disconnect ()
+	self:StopDiscovery (true)
 
 	if (self.SearchTargets) then
 		if (self.searchTarget) then
@@ -90,6 +90,8 @@ function ssdpObject:StopDiscovery (resetLocations)
 	end
 
 	CancelTimer (self.timerPrefix .. 'RepeatingDiscovery')
+	CancelTimer (self.timerPrefix .. 'RediscoverCurrentDevice')
+	CancelTimer (self.timerPrefix .. 'UpdateDevices')
 
 	self:disconnect ()
 end
@@ -361,8 +363,7 @@ function ssdpObject:updateDevices ()
 		end
 	end
 
-	local timerId = 'SSDP:' .. self.searchTarget .. ':updateDevices'
-	SetTimer (timerId, ONE_SECOND, _timer)
+	SetTimer (self.timerPrefix .. 'UpdateDevices', ONE_SECOND, _timer)
 end
 
 function ssdpObject:parseXML (strError, responseCode, tHeaders, data, context, url)
