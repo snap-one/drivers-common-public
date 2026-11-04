@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 30
+COMMON_URL_VER = 31
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -37,15 +37,6 @@ do --Setup Metrics
 end
 
 function MakeURL (path, args, suppressDefaultArgs, appendToURL)
-
-	local debugOut = {
-		path = path,
-		args = args,
-		suppressDefaultArgs = suppressDefaultArgs,
-		appendToURL = appendToURL,
-	}
-	print (JSON:encode (debugOut))
-
 	local args = (type (args) == 'table' and args) or {}
 
 	local schemePart, authorityPart, pathPart, pagePart, queryPart, fragmentPart
