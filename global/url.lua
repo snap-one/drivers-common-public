@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_URL_VER = 29
+COMMON_URL_VER = 30
 
 JSON = require ('drivers-common-public.module.json')
 
@@ -37,6 +37,15 @@ do --Setup Metrics
 end
 
 function MakeURL (path, args, suppressDefaultArgs, appendToURL)
+
+	local debugOut = {
+		path = path,
+		args = args,
+		suppressDefaultArgs = suppressDefaultArgs,
+		appendToURL = appendToURL,
+	}
+	print (JSON:encode (debugOut))
+
 	local args = (type (args) == 'table' and args) or {}
 
 	local schemePart, authorityPart, pathPart, pagePart, queryPart, fragmentPart
@@ -99,8 +108,10 @@ function MakeURL (path, args, suppressDefaultArgs, appendToURL)
 
 		if (queryPart) then
 			args = args or {}
+			-- assume queryPart is in the form of key=value pairs separated by &
+			-- TODO - handle other cases
 			for pair in string.gmatch (queryPart or '', '[^%&]+') do
-				local k, v = string.match (pair, '(.+)%=(.+)')
+				local k, v = string.match (pair, '(.+)%=(.*)')
 				if (args [k] == nil) then
 					args [k] = v
 				end
