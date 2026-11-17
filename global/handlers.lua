@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 40
+COMMON_HANDLERS_VER = 41
 
 do -- define globals
 	DEBUG_RFN = false
@@ -233,10 +233,6 @@ do --Setup Metrics
 end
 
 function HandlerDebug (init, tParams, args)
-	if (not DEBUGPRINT) then
-		return
-	end
-
 	if (type (init) ~= 'table') then
 		return
 	end
@@ -287,7 +283,7 @@ function ExecuteCommand (strCommand, tParams, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'ExecuteCommand: ' .. strCommand,
 		}
@@ -317,7 +313,7 @@ function ExecuteCommand (strCommand, tParams, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_ExecuteCommand')
 		print ('ExecuteCommand error: ', ret, strCommand)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled ExecuteCommand')
+		print ('Unhandled ExecuteCommand', strCommand)
 	end
 end
 
@@ -327,7 +323,7 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnBindingChanged: ' .. idBinding,
 		}
@@ -354,7 +350,7 @@ function OnBindingChanged (idBinding, strClass, bIsBound, otherDeviceId, otherBi
 		MetricsHandler:SetCounter ('Error_OnBindingChanged')
 		print ('OnBindingChanged error: ', ret, idBinding, strClass, bIsBound, otherDeviceId, otherBindingId)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnBindingChanged')
+		print ('Unhandled OnBindingChanged', idBinding)
 	end
 end
 
@@ -364,7 +360,7 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus, instantSuppress
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnConnectionStatusChanged: ' .. idBinding,
 		}
@@ -389,7 +385,7 @@ function OnConnectionStatusChanged (idBinding, nPort, strStatus, instantSuppress
 		MetricsHandler:SetCounter ('Error_OnConnectionStatusChanged')
 		print ('OnConnectionStatusChanged error: ', ret, idBinding, nPort, strStatus)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnConnectionStatusChanged')
+		print ('Unhandled OnConnectionStatusChanged', idBinding)
 	end
 end
 
@@ -451,7 +447,7 @@ function OnDeviceEvent (firingDeviceId, eventId, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnDeviceEvent: ' .. C4:GetDeviceDisplayName (firingDeviceId) .. ' [' .. firingDeviceId .. ']',
 			eventId,
@@ -473,7 +469,7 @@ function OnDeviceEvent (firingDeviceId, eventId, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_OnDeviceEvent')
 		print ('OnDeviceEvent error: ', ret, firingDeviceId, eventId)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnDeviceEvent')
+		print ('Unhandled OnDeviceEvent', firingDeviceId, eventId)
 	end
 end
 
@@ -662,7 +658,7 @@ function OnPropertyChanged (strProperty, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnPropertyChanged: ' .. strProperty,
 			value,
@@ -686,7 +682,7 @@ function OnPropertyChanged (strProperty, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_OnPropertyChanged')
 		print ('OnPropertyChanged error: ', ret, strProperty, value)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnPropertyChanged')
+		print ('Unhandled OnPropertyChanged', strProperty, value)
 	end
 end
 
@@ -706,7 +702,7 @@ function OnSystemEvent (event, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnSystemEvent: ' .. eventName,
 			event,
@@ -729,7 +725,7 @@ function OnSystemEvent (event, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_OnSystemEvent')
 		print ('OnSystemEvent error: ', ret, eventName, event)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnSystemEvent')
+		print ('Unhandled OnSystemEvent', eventName, event)
 	end
 end
 
@@ -813,7 +809,7 @@ function OnVariableChanged (strVariable, variableId, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnVariableChanged: ' .. strVariable .. ' [' .. tostring (variableId) .. ']',
 			value,
@@ -840,7 +836,7 @@ function OnVariableChanged (strVariable, variableId, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_OnVariableChanged')
 		print ('OnVariableChanged error: ', ret, strVariable, value)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnVariableChanged')
+		print ('Unhandled OnVariableChanged', strVariable, value)
 	end
 end
 
@@ -913,7 +909,7 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue, instantSuppre
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'OnWatchedVariableChanged: ' .. C4:GetDeviceDisplayName (idDevice) .. ' [' .. idDevice .. ']',
 		}
@@ -943,7 +939,7 @@ function OnWatchedVariableChanged (idDevice, idVariable, strValue, instantSuppre
 		MetricsHandler:SetCounter ('Error_OnWatchedVariableChanged')
 		print ('OnWatchedVariableChanged error: ', ret, idDevice, idVariable, strValue)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled OnWatchedVariableChanged')
+		print ('Unhandled OnWatchedVariableChanged', idDevice, idVariable, strValue)
 	end
 end
 
@@ -957,7 +953,7 @@ function ReceivedFromNetwork (idBinding, nPort, strData, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'ReceivedFromNetwork: ' .. idBinding,
 		}
@@ -983,7 +979,7 @@ function ReceivedFromNetwork (idBinding, nPort, strData, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_ReceivedFromNetwork')
 		print ('ReceivedFromNetwork error: ', ret, idBinding, nPort, strData)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled ReceivedFromNetwork')
+		print ('Unhandled ReceivedFromNetwork', idBinding, nPort)
 	end
 end
 
@@ -1004,7 +1000,7 @@ function ReceivedFromProxy (idBinding, strCommand, tParams, instantSuppressDebug
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'ReceivedFromProxy: ' .. idBinding,
 			strCommand,
@@ -1029,7 +1025,7 @@ function ReceivedFromProxy (idBinding, strCommand, tParams, instantSuppressDebug
 		MetricsHandler:SetCounter ('Error_ReceivedFromProxy')
 		print ('ReceivedFromProxy error: ', ret, idBinding, strCommand)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled ReceivedFromProxy')
+		print ('Unhandled ReceivedFromProxy', idBinding, strCommand)
 	end
 end
 
@@ -1042,7 +1038,7 @@ function TestCondition (strConditionName, tParams, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'TestCondition: ' .. strConditionName,
 		}
@@ -1063,7 +1059,7 @@ function TestCondition (strConditionName, tParams, instantSuppressDebug)
 		MetricsHandler:SetCounter ('Error_TestCondition')
 		print ('TestCondition error: ', ret, strConditionName)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled TestCondition')
+		print ('Unhandled TestCondition', strConditionName)
 	end
 end
 
@@ -1076,7 +1072,7 @@ function UIRequest (strCommand, tParams, instantSuppressDebug)
 		suppressDebug = instantSuppressDebug
 	end
 
-	if (not suppressDebug) then
+	if (DEBUGPRINT and not suppressDebug) then
 		local init = {
 			'UIRequest: ' .. strCommand,
 		}
@@ -1103,6 +1099,6 @@ function UIRequest (strCommand, tParams, instantSuppressDebug)
 	elseif (success == false) then
 		print ('UIRequest Lua error: ', strCommand, ret)
 	elseif (DEBUGPRINT) then
-		print ('Unhandled UIRequest')
+		print ('Unhandled UIRequest', strCommand)
 	end
 end
