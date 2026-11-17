@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_TIMER_VER = 14
+COMMON_TIMER_VER = 15
 
 do --Globals
 	Timer = Timer or {}
@@ -85,9 +85,7 @@ function SetTimer (timerId, delay, timerFunction, repeating)
 					print ('Timer completed: ', timerId, ret)
 				end
 			elseif (success == false) then
-				if (DEBUG_TIMER) then
-					print ('Timer Regular Expire Lua error: ', timerId, ret)
-				end
+				print ('Timer Regular Expire Lua error: ', timerId, ret)
 			end
 		end
 		if (repeating ~= true) then
