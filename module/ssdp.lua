@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_SSDP_VER = 13
+COMMON_SSDP_VER = 14
 
 require ('drivers-common-public.global.lib')
 require ('drivers-common-public.global.handlers')
@@ -358,7 +358,7 @@ end
 
 function ssdpObject:updateDevices ()
 	local _timer = function (timer)
-		if (self.UpdateDevices and type (self.UpdateDevices == 'function')) then
+		if (type (self.UpdateDevices) == 'function') then
 			pcall (self.UpdateDevices, self, CopyTable (self.devices))
 		end
 	end
@@ -402,7 +402,7 @@ function ssdpObject:parseXML (strError, responseCode, tHeaders, data, context, u
 		device.friendlyName = friendlyName
 		device.deviceXML = data
 
-		if (self.ProcessXML and type (self.ProcessXML == 'function')) then
+		if (type (self.ProcessXML) == 'function') then
 			pcall (self.ProcessXML, self, context.usnUUID, data, tHeaders)
 		end
 		self:updateDevices ()
