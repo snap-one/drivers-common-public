@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 16
+COMMON_WEBSOCKET_VER = 17
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -188,7 +188,7 @@ function wsObject:Send (s)
 		elseif (len <= 65535) then
 			lenstr = string.char (0x81, bit.bor (126, 0x80)) .. tohex (string.format ('%04X', len))
 		else
-			lenstr = string.char (0x81, bit.bor (127, 0x80)) .. tohex (string.format ('%16X', len))
+			lenstr = string.char (0x81, bit.bor (127, 0x80)) .. tohex (string.format ('%016X', len))
 		end
 
 		local mask = {
