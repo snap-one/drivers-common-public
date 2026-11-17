@@ -3,7 +3,7 @@
 Metrics = require ('drivers-common-public.module.metrics')
 require ('drivers-common-public.global.lib')
 
-COMMON_HANDLERS_VER = 41
+COMMON_HANDLERS_VER = 42
 
 do -- define globals
 	DEBUG_RFN = false
@@ -789,12 +789,15 @@ function SetVariable (strVariable, strValue, notifyChange)
 		strValue = tostring (strValue)
 	end
 
+	local change = false
 	if (Variables [strVariable] ~= strValue) then
 		C4:SetVariable (strVariable, strValue)
+		change = true
 	end
 	if (notifyChange == true) then
 		OnVariableChanged (strVariable)
 	end
+	return change
 end
 
 function OnVariableChanged (strVariable, variableId, instantSuppressDebug)
