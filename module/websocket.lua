@@ -357,6 +357,12 @@ function wsObject:ParsePacket (strData)
 end
 
 function wsObject:parseWSPacket ()
+	-- a read can end partway through a frame header; wait for the rest
+	local buflen = string.len (self.buf)
+	if (buflen < 2) then
+		return
+	end
+
 	--diagnostic disables are because Driverworks embeds lpack which has different formats to Lua5.3 string.pack/unpack
 	---@diagnostic disable-next-line: deprecated
 	local _, h1, h2, b1, b2, b3, b4, b5, b6, b7, b8 = string.unpack (self.buf, 'bbbbbbbbbb')
@@ -380,11 +386,17 @@ function wsObject:parseWSPacket ()
 		msglen = len
 	elseif (len == 126) then
 		-- 2-byte length
+		if (buflen < 4) then
+			return
+		end
 		msglen = msglen + b1; msglen = msglen * 0x100
 		msglen = msglen + b2;
 		headerlen = 4
 	elseif (len == 127) then
 		-- 8-byte length
+		if (buflen < 10) then
+			return
+		end
 		msglen = msglen + b1; msglen = msglen * 0x100
 		msglen = msglen + b2; msglen = msglen * 0x100
 		msglen = msglen + b3; msglen = msglen * 0x100
