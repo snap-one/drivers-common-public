@@ -1,6 +1,6 @@
 -- Copyright 2026 Snap One, LLC. All rights reserved.
 
-COMMON_WEBSOCKET_VER = 17
+COMMON_WEBSOCKET_VER = 18
 
 require ('drivers-common-public.global.handlers')
 require ('drivers-common-public.global.timer')
@@ -431,7 +431,7 @@ function wsObject:parseWSPacket ()
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PING')
 			end
-			self:Pong ()
+			self:Pong (thisFragment)
 		elseif (opcode == 0x0A) then -- pong control frame
 			if (DEBUG_WEBSOCKET) then
 				print ('RX PONG')
@@ -531,9 +531,25 @@ function wsObject:Ping ()
 	end
 end
 
-function wsObject:Pong ()
+function wsObject:Pong (data)
 	if (self.connected) then
-		local pkt = string.char (0x8A, 0x80, 0x00, 0x00, 0x00, 0x00)
+		-- RFC 6455 5.5.3: a pong carries the ping's application data
+		data = string.sub (data or '', 1, 125)
+
+		local mask = {
+			math.random (0, 255),
+			math.random (0, 255),
+			math.random (0, 255),
+			math.random (0, 255),
+		}
+
+		local pkt = {
+			string.char (0x8A, bit.bor (string.len (data), 0x80)),
+			string.char (mask [1], mask [2], mask [3], mask [4]),
+			self:Mask (data, mask),
+		}
+
+		local pkt = table.concat (pkt)
 		if (DEBUG_WEBSOCKET) then
 			print ('TX PONG')
 		end
